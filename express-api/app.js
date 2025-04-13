@@ -37,10 +37,11 @@ app.use(bodyParser.json());
 
 const port = 3000;
 
-const JOBS = [
-  "scorer",
-  "cleaner",
-  "official"
+const JOB_ENUM = [
+  "SCORER",
+  "BALLER",
+  "CLEANER",
+  "OFFICIAL"
 ];
 
 const fetchUserByAuth = () => {
@@ -177,11 +178,6 @@ app.delete('/teams/:teamId/subscribers', (req, res) => {
 app.post('/teams/:teamId/events', (req, res) => {
   const eventName = req.body.eventName ? req.body.eventName.trim() : "";
   const dateTime = req.body.dateTime;
-  const scorers = req.body.scorers;
-  const cleaners = req.body.cleaners;
-  const officials = req.body.officials;
-  // TODO: validate request object
-  // TODO: make dedicated event-object
 
   const adminUser = fetchUserByAuth();
 
@@ -191,14 +187,28 @@ app.post('/teams/:teamId/events', (req, res) => {
     return;
   }
 
-  const eventId = dbServices.createEvent(db, req.params.teamId, eventName, dateTime, scorers, cleaners, officials);
+  const newJobs = req.body.jobs ? req.body.jobs : {};
+  if (!newJobs) {
+    res.status(400).json({ error: "must specify required jobs" });
+    return;
+  }
+
+  for (let job in newJobs) {
+    if (typeof job !== "string" || !JOB_ENUM.includes(job.toUpperCase())) {
+      res.status(400).json({ error: "invalid job type" });
+      return;
+    } else if (typeof newJobs[job] !== "number" || newJobs[job] < 0) {
+      res.status(400).json({ error: "invalid number of jobs" });
+      return;
+    }
+  }
+
+  const eventId = dbServices.createEvent(db, req.params.teamId, eventName, dateTime, newJobs);
   const newEvent = {
     id: eventId,
     name: eventName,
     dateTime: dateTime,
-    scorers: scorers,
-    cleaners: cleaners,
-    officials: officials
+    jobs: newJobs
   }
   res.status(202).json(newEvent);
 });
@@ -239,7 +249,7 @@ app.get('/events', (req, res) => {
 });
 
 // access as admin
-/*app.get('/teams/:teamId/events/:eventId', (req, res) => {
+app.get('/teams/:teamId/events/:eventId', (req, res) => {
   const adminUser = fetchUserByAuth();
   const team = dbServices.getTeamById(db, req.params.teamId, adminUser.id);
   if (!team) {
@@ -247,9 +257,15 @@ app.get('/events', (req, res) => {
     return;
   }
   const event = dbServices.getEventById(db, req.params.eventId);
-  // TODO: enrich more info, like volunteers
-  res.status(200).json(event);
-});*/
+  if (!event) {
+    res.status(404).json({ error: "event not found" });
+    return;
+  }
+  const volunteers = dbServices.getUserXEventsByEventId(db, req.params.eventId);
+  const jobs = dbServices.getJobsByEventId(db, req.params.eventId);
+
+  res.status(200).json({e:event, v:volunteers, j:jobs});
+});
 
 // access as user
 app.get('/events/:eventId', (req, res) => {
@@ -279,83 +295,67 @@ app.delete('/events/:eventId/volunteers', (req, res) => {
 
   const deletedRows = dbServices.removeUserXEvent(db, user.id, req.params.eventId);
   if (deletedRows === 0) {
-    console.warn("user not volunteering to event");
+    console.warn("DELETE:/events/:eventId/volunteers - user not volunteering to event");
   }
   res.status(200).json({ message:"volunteer withdrawn from event" });
 });
 
-
-app.post('/events/:eventId/scorers', (req, res) => {
-  // cont
-  if (GROUPS[req.params.groupId] === undefined) {
-    res.status(404).json({ error: "group not found" });
+app.post('/teams/:teamId/events/:eventId/jobs', (req, res) => {
+  const adminUser = fetchUserByAuth();
+  const team = dbServices.getTeamById(db, req.params.teamId, adminUser.id);
+  if (!team) {
+    res.status(404).json({ error: "team not found" });
     return;
   }
-  if (GROUPS[req.params.groupId].events[req.params.eventId] === undefined) {
-    res.status(404).json({ error: "event not found" });
-    return;
-  }
+  // TODO: validate jobsType
 
-  const event = GROUPS[req.params.groupId].events[req.params.eventId];
-  const volunteerId = req.body.volunteerId;
-  if (volunteerId !== undefined && volunteerId.length > 0) {
-    const requiredNo = event.jobs.scorers.requiredNo;
-    let helpers = event.jobs.scorers.helpers;
-    // check if there is need for scorers
-    if (requiredNo === 0 || requiredNo <= helpers.length) {
-      res.status(400).json({ error:"no additional volunteers needed for job: SCORER" });
-      return;
-    }
-    // check if volunteer exists and volunteers for this event and this job
-    if (users[volunteerId] === undefined || !event.volunteers.includes(volunteerId)) {
-      res.status(400).json({ error:"volunteer does not volunteer for event" });
-      return;
-    }
-    // check if volunteer volunteers for this job
-    if (!users[volunteerId].jobs.includes("scorer")) {
-      res.status(400).json({ error:"volunteer does not volunteer for job: SCORER" });
-      return;
-    }
-    // check if volunteer is already helping for this job
-    // TODO:also assure volunteer is not helping in other jobs
-    if (helpers.includes(volunteerId)) {
-      res.status(400).json({ error:"volunteer already assigned for job: SCORER" });
-      return;
-    }
-
-    helpers.push(volunteerId);
-    res.status(202).json({ message:"volunteer added for job: SCORER" });
-    return;
+  try {
+    dbServices.createJob(db, req.params.eventId, req.body.jobType);
+    res.status(202).json({ message:"job added" });
+  } catch (err) {
+    console.error("POST:/teams/:teamId/events/:eventId/jobs", err);
+    res.status(500).json({ error:err });
   }
-  res.status(400).json({ error:"invalid volunteerId" });
 });
 
-app.delete('/groups/:groupId/events/:eventId/scorers', (req, res) => {
-  if (GROUPS[req.params.groupId] === undefined) {
-    res.status(404).json({ error: "group not found" });
+app.delete('/teams/:teamId/events/:eventId/jobs/:jobId', (req, res) => {
+  const adminUser = fetchUserByAuth();
+  const team = dbServices.getTeamById(db, req.params.teamId, adminUser.id);
+  if (!team) {
+    res.status(404).json({ error: "team not found" });
     return;
   }
-  if (GROUPS[req.params.groupId].events[req.params.eventId] === undefined) {
+  const event = dbServices.getEventByIdAndTeamId(db, req.params.eventId, req.params.teamId);
+  if (!event) {
     res.status(404).json({ error: "event not found" });
-    return;
   }
 
-  const event = GROUPS[req.params.groupId].events[req.params.eventId];
-  const volunteerId = req.body.volunteerId;
-  if (volunteerId !== undefined && volunteerId.length > 0) {
-    let helpers = event.jobs.scorers.helpers;
-    const position = helpers.indexOf(volunteerId);
-    if (position === -1) {
-      res.status(400).json({ error:"volunteer not assigned for job: SCORER" });
-      return;
-    }
+  const deletedRows = dbServices.removeJob(db, req.params.jobId, req.params.eventId);
+  if (deletedRows === 0) {
+    console.warn("DELETE:/teams/:teamId/events/:eventId/jobs/:jobId - job not assigned to eventId");
+  }
+  res.status(200).json({ message: "job removed" });
+});
 
-    helpers.splice(position, 1);
-    res.status(200).json({ message:"volunteer removed from job: SCORER" });
+// assign/unassign user to job
+app.patch('/teams/:teamId/events/:eventId/jobs/:jobId', (req, res) => {
+  const adminUser = fetchUserByAuth();
+  const team = dbServices.getTeamById(db, req.params.teamId, adminUser.id);
+  if (!team) {
+    res.status(404).json({ error: "team not found" });
     return;
   }
-  res.status(400).json({ error:"invalid volunteerId" });
-})
+  const event = dbServices.getEventByIdAndTeamId(db, req.params.eventId, req.params.teamId);
+  if (!event) {
+    res.status(404).json({ error: "event not found" });
+  }
+
+  const changedRows = dbServices.updateJobHelper(db, req.params.jobId, req.params.eventId, req.body.userId);
+  if (changedRows === 0) {
+    console.warn("PUT:/teams/:teamId/events/:eventId/jobs/:jobId - no changes performed");
+  }
+  res.status(200).json({ message: "helper un-/assigned" });
+});
 
 
 

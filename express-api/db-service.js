@@ -59,9 +59,15 @@ const dbServices = {
 		return stmt.run(userId, teamId).changes;
 	},
 
-	createEvent: (db, teamId, eventName, dateTime, scorers, cleaners, officials) => {
-		const stmt = db.prepare(`INSERT INTO event (name, start_datetime, team_id, scorers, cleaners, officials) VALUES (?, ?, ?, ?, ?, ?)`);
-		return stmt.run(eventName, dateTime, teamId, scorers, cleaners, officials).lastInsertRowid;
+	createEvent: (db, teamId, eventName, dateTime, jobTypes) => {
+		const stmt_event = db.prepare(`INSERT INTO event (name, start_datetime, team_id) VALUES (?, ?, ?)`);
+		const eventId = stmt_event.run(eventName, dateTime, teamId).lastInsertRowid;
+		const stmt_job = db.prepare(`INSERT INTO job (type, event_id) VALUES (UPPER(?), ?)`);
+		for (let jobType in jobTypes) {
+			for (let i = 0; i < jobTypes[jobType]; i++) {
+				stmt_job.run(jobType, eventId);
+			}
+		}
 	},
 
 	removeEvent: (db, teamId, eventId) => {
@@ -72,6 +78,11 @@ const dbServices = {
 	getEventById: (db, eventId) => {
 		const stmt = db.prepare(`SELECT * FROM event WHERE id=?`);
 		return stmt.get(eventId);
+	},
+
+	getEventByIdAndTeamId: (db, eventId, teamId) => {
+		const stmt = db.prepare(`SELECT * FROM event WHERE id=? AND team_id=?`);
+		return stmt.get(eventId, teamId);
 	},
 
 	getEventsByTeamId: (db, teamId) => {
@@ -92,6 +103,36 @@ const dbServices = {
 	removeUserXEvent: (db, userId, eventId) => {
 		const stmt = db.prepare(`DELETE FROM userXevent WHERE user_id=? AND event_id=?`);
 		return stmt.run(userId, eventId).changes;
+	},
+
+	getUserXEventsByEventId: (db, eventId) => {
+		const stmt = db.prepare(`SELECT u.id, u.display_name FROM userXevent uxe JOIN user u ON u.id=uxe.user_id WHERE uxe.event_id=?`);
+		return stmt.all(eventId);
+	},
+
+	createJob: (db, eventId, jobType) => {
+		const stmt = db.prepare(`INSERT INTO job (event_id, job) VALUES (?, ?)`);
+		return stmt.run(eventId, jobType).lastInsertRowid;
+	},
+
+	removeJob: (db, jobId, eventId) => {
+		const stmt = db.prepare(`DELETE FROM job WHERE id=? AND event_id=?`);
+		return stmt.run(jobId, eventId).changes;
+	},
+
+	getJobsByEventId: (db, eventId) => {
+		const stmt = db.prepare(`SELECT j.id, j.job, u.id as helperId, u.display_name as helper FROM job j LEFT JOIN user u ON u.id=j.user_id WHERE j.event_id=?`);
+		return stmt.all(eventId);
+	},
+
+	updateJobHelper: (db, jobId, eventId, userId) => {
+		if (userId) {
+			const stmt = db.prepare(`UPDATE job SET user_id=? WHERE id=? AND event_id=?`);
+			return stmt.run(userId, jobId, eventId).changes;
+		} else {
+			const stmt = db.prepare(`UPDATE job SET user_id=NULL WHERE id=? AND event_id=?`);
+			return stmt.run(jobId, eventId).changes;
+		}
 	}
 }
 
