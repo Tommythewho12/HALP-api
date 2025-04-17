@@ -111,7 +111,7 @@ const dbServices = {
 	},
 
 	createJob: (db, eventId, jobType) => {
-		const stmt = db.prepare(`INSERT INTO job (event_id, job) VALUES (?, ?)`);
+		const stmt = db.prepare(`INSERT INTO job (event_id, type) VALUES (?, ?)`);
 		return stmt.run(eventId, jobType).lastInsertRowid;
 	},
 
@@ -121,7 +121,7 @@ const dbServices = {
 	},
 
 	getJobsByEventId: (db, eventId) => {
-		const stmt = db.prepare(`SELECT j.id, j.job, u.id as helperId, u.display_name as helper FROM job j LEFT JOIN user u ON u.id=j.user_id WHERE j.event_id=?`);
+		const stmt = db.prepare(`SELECT j.id, j.type, u.id as helperId, u.display_name as helper FROM job j LEFT JOIN user u ON u.id=j.user_id WHERE j.event_id=?`);
 		return stmt.all(eventId);
 	},
 
