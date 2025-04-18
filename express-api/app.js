@@ -4,11 +4,19 @@
 import express from "express";
 import sqlite from "better-sqlite3";
 import bodyParser from "body-parser";
+import bcrypt from "bcrypt"; // TODO: check alternatives; npm marks deprecated
+import jwt from "jsonwebtoken";
 
 import dbServices from "./db-service.js";
 
+// TODO: outsource into .env file; remember to ignore .env in gitignore
+const PORT = process.env.HALP_API_PORT | 3000;
+const SQLITE_PATH = "../sqlite-db/halp.db";
+const ACCESS_TOKEN_SECRET = 'this-is-my-super-secret-secret-that-noone-will-ever-find-out';
+const REFRESH_TOKEN_SECRET = 'this-is-my-not-so-super-secret-secret-that-noone-will-ever-find-out';
+
 const app = express();
-const db = new sqlite('../sqlite-db/halp.db', { fileMustExist: true });
+const db = new sqlite(SQLITE_PATH, { fileMustExist: true });
 db.pragma('journal_mode = WAL');
 
 // TODO: separate app.js/index.js from other logic
@@ -35,8 +43,6 @@ main();*/
 
 app.use(bodyParser.json());
 
-const port = 3000;
-
 const JOB_ENUM = [
   "SCORER",
   "BALLER",
@@ -51,10 +57,12 @@ const fetchUserByAuth = () => {
 app.post('/auth/signup', (req, res) => {
   const displayName = req.body.displayName ? req.body.displayName.trim() : "";
   const email = req.body.email ? req.body.email.trim() : "";
-  let password = req.body.password ? req.body.password : "";
+  const password = req.body.password;
+  const passwordHash = bcrypt.hashSync(password, 10);
+  // TODO: already return error instead of waiting for DB
 
   try {
-    const userId = dbServices.createUser(db, displayName, email, password);
+    const userId = dbServices.createUser(db, displayName, email, passwordHash);
     res.status(202).json({ msg: "User successfully created" });
   } catch (err) {
     if (err.code === "SQLITE_CONSTRAINT_CHECK") {
@@ -73,15 +81,29 @@ app.post('/auth/signup', (req, res) => {
 });
 
 app.post('/auth/login', (req, res) => {
-  let email = req.body.email ? req.body.email.trim() : "";
-  let password = req.body.password;
-
+  const email = req.body.email ? req.body.email.trim() : "";
+  const password = req.body.password;
+  
   const user = dbServices.getUserByEmail(db, email);
 
-  if  (!user || user.password !== password) {
-    res.status(200).json({ msg: "authentication failed"});
-  } else 
-    res.status(200).json({ msg: "authentication success"})
+  if  (!user || !bcrypt.compareSync(password, user.password)) {
+    res.status(403).json({ msg: "authentication failed"});
+  return;
+  } else {
+    const accessToken = createAccessToken(user.id);
+    const refreshToken = createRefreshToken(user.id);
+    // TODO: place refreshToken in DB
+    
+    res
+    .status(200)
+      .cookie("refreshToken", refreshToken)
+    .json({ 
+        accessToken: accessToken,
+      msg: "authentication success"
+    });
+  return;
+  }
+  res.status(403).json({ error: "something went wrong" });
 });
 
 // TODO:fix and test in Postman
@@ -383,7 +405,10 @@ app.get('/test', (req, res) => {
 })
 
 app.post('/test', (req, res) => {
-  res.send('Got POST request');
+  if (checkAccessToken(req.headers["authorization"])) {
+    res.status(200).send("Works!");
+  } else 
+    res.status(403).send('Error!');
 })
 
 app.post('/test/somedata', (req, res) => {
@@ -391,6 +416,43 @@ app.post('/test/somedata', (req, res) => {
   res.send('Got POST request with following content for "username": ' + req.body.username);
 })
 
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
+app.listen(PORT, () => {
+  console.log(`Example app listening on port ${PORT}`)
 })
+
+
+const createAccessToken = (id) => {
+  return jwt.sign({ id }, ACCESS_TOKEN_SECRET, {
+    expiresIn: 5 * 60,
+  });
+};
+
+const createRefreshToken = (id) => {
+  return jwt.sign({ id }, ACCESS_TOKEN_SECRET, {
+    expiresIn: "90d",
+  });
+};
+
+const checkAccessToken = (authorization) => {
+  console.debug("authorization", authorization);
+  if (!authorization) {
+    return false;
+  }
+  const token = authorization.split(" ")[1];
+  console.debug("token", token);
+  let id;
+  try {
+    const verifyThing = jwt.verify(token, ACCESS_TOKEN_SECRET);
+    console.debug("verifyThing", verifyThing);
+    id = verifyThing.id;
+    console.debug("id", id);
+  } catch (err) {
+    console.error(err);
+    return false;
+  }
+  if (!id) {
+    return false;
+  }
+  
+  return id;
+}
