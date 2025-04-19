@@ -4,20 +4,17 @@
 import express from "express";
 import sqlite from "better-sqlite3";
 import bodyParser from "body-parser";
-import bcrypt from "bcrypt"; // TODO: check alternatives; npm marks deprecated
 import jwt from "jsonwebtoken";
 
+import indexRoute from "./routes/index.js";
+import authRoute from "./routes/auth.js";
 import dbServices from "./db-service.js";
 
 // TODO: outsource into .env file; remember to ignore .env in gitignore
 const PORT = process.env.HALP_API_PORT | 3000;
-const SQLITE_PATH = "../sqlite-db/halp.db";
-const ACCESS_TOKEN_SECRET = 'this-is-my-super-secret-secret-that-noone-will-ever-find-out';
-const REFRESH_TOKEN_SECRET = 'this-is-my-not-so-super-secret-secret-that-noone-will-ever-find-out';
+// const NODE_ENV = 'production'; // TODO: set for prod
 
 const app = express();
-const db = new sqlite(SQLITE_PATH, { fileMustExist: true });
-db.pragma('journal_mode = WAL');
 
 // TODO: separate app.js/index.js from other logic
 /*const main = async () => {
@@ -41,7 +38,6 @@ main();*/
 
 // TODO:write script here to start db if not yet exists.
 
-app.use(bodyParser.json());
 
 const JOB_ENUM = [
   "SCORER",
@@ -54,59 +50,21 @@ const fetchUserByAuth = () => {
   return dbServices.getUserByEmail(db, "t@gmx.net");
 };
 
-app.post('/auth/signup', (req, res) => {
-  const displayName = req.body.displayName ? req.body.displayName.trim() : "";
-  const email = req.body.email ? req.body.email.trim() : "";
-  const password = req.body.password;
-  const passwordHash = bcrypt.hashSync(password, 10);
-  // TODO: already return error instead of waiting for DB
+// TODO: remove logger?
+// const loggerFunction = (req, res, next) => {
+  // console.log("i am logging");
+  // next();
+// };
 
-  try {
-    const userId = dbServices.createUser(db, displayName, email, passwordHash);
-    res.status(202).json({ msg: "User successfully created" });
-  } catch (err) {
-    if (err.code === "SQLITE_CONSTRAINT_CHECK") {
-      res.status(400).json({ error: "name, email, and password cannot be empty" });
-    } 
-    else if (err.code === "SQLITE_CONSTRAINT_UNIQUE") {
-      const duplicateValue = "unknown value";
-      if (err.message.includes("name"))
-        duplicateValues = "name";
-      if (err.message.includes("email"))
-        duplicateValues = "email";
-      res.status(400).json({ error: duplicateValue + " already exists" });
-    } else
-      res.status(500).json({ error: err });
-  }  
-});
+app.use(bodyParser.json());
+// app.use(loggerFunction);
 
-app.post('/auth/login', (req, res) => {
-  const email = req.body.email ? req.body.email.trim() : "";
-  const password = req.body.password;
-  
-  const user = dbServices.getUserByEmail(db, email);
+app.use('/', indexRoute);
+app.use('/auth', authRoute);
 
-  if  (!user || !bcrypt.compareSync(password, user.password)) {
-    res.status(403).json({ msg: "authentication failed"});
-  return;
-  } else {
-    const accessToken = createAccessToken(user.id);
-    const refreshToken = createRefreshToken(user.id);
-    // TODO: place refreshToken in DB
-    
-    res
-    .status(200)
-      .cookie("refreshToken", refreshToken)
-    .json({ 
-        accessToken: accessToken,
-      msg: "authentication success"
-    });
-  return;
-  }
-  res.status(403).json({ error: "something went wrong" });
-});
 
-// TODO:fix and test in Postman
+
+// TODO:fix and test in Postman; actually remove?
 app.patch('/users', (req, res) => {
   let user = findUser("t");
   const newJobs = [];
@@ -117,84 +75,6 @@ app.patch('/users', (req, res) => {
   user.jobs = newJobs;
   res.status(200).json(user);
 });
-
-app.post('/teams', (req, res) => {
-  const adminUser = fetchUserByAuth();
-
-  const teamName = req.body.teamName ? req.body.teamName.trim() : "";
-  const teamNameExists = dbServices.existsTeamWithName(db, teamName, adminUser.id);
-  if (teamNameExists) {
-    res.status(400).json({ error: "team name already in use" });
-    return;
-  }
-
-  const newTeamId = dbServices.createTeam(db, teamName, adminUser.id);
-
-  let newTeam = {
-    id: newTeamId,
-    name: teamName,
-    adminId: adminUser.id,
-    subscriberIds: [],
-    eventIds: {}
-  };
-
-  res.status(202).json(newTeam);
-});
-
-app.delete('/teams/:teamId', (req, res) => {
-  const adminUser = fetchUserByAuth();
-
-  const deletedRows = dbServices.removeTeam(db, req.params.teamId, adminUser.id);
-  if (deletedRows === 0) {
-    console.warn("team does not exist");
-  }
-  res.status(200).json({ message:"team deleted" });
-});
-
-app.get('/teams', (req, res) => {
-  const adminUser = fetchUserByAuth();
-
-  const teams = dbServices.getTeams(db, adminUser.id);
-  res.status(200).json(teams);
-});
-
-app.get('/teams/:teamId', (req, res) => {
-  const adminUser = fetchUserByAuth();
-
-  const team = dbServices.getTeamById(db, req.params.teamId, adminUser.id);
-  if (team) {
-    res.status(200).json(team);
-  } else
-    res.status(404).json({ error: "team not found" });
-});
-
-// subscribe current user to team
-app.post('/teams/:teamId/subscribers', (req, res) => {
-  const user = fetchUserByAuth();
-
-  try {
-    dbServices.createUserXTeam(db, user.id, req.params.teamId);
-    res.status(200).json({ message: "subscribed to team" });
-  } catch (err) {
-    if (err.code === "SQLITE_CONSTRAINT_PRIMARYKEY") {
-      res.status(200).json({ message: "subscribed to team" });
-      console.warn("user already subscribed to team");
-    } else {
-      res.status(500).json({ error: err });
-    }
-  }
-});
-
-// unsubscribe current user from team
-app.delete('/teams/:teamId/subscribers', (req, res) => {
-  const user = fetchUserByAuth();
-
-  const deletedRows = dbServices.removeUserXTeam(db, user.id, req.params.teamId);
-  if (deletedRows === 0) {
-    console.warn("user not subscribed to team");
-  }
-  res.status(200).json({ message: "unsubscribed from team" })
-})
 
 
 app.post('/teams/:teamId/events', (req, res) => {
@@ -394,15 +274,12 @@ process.on('SIGTERM', () => {
 
 /* ### TEST CODE ### */
 app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
+  res.send(req);
+});
 
 app.get('/test', (req, res) => {
-  db.all('SELECT * FROM lorem', (err, row) => {
-    console.log(`${row}`);
-    res.send(row);
-  })
-})
+  res.send(res);
+});
 
 app.post('/test', (req, res) => {
   if (checkAccessToken(req.headers["authorization"])) {
@@ -419,40 +296,3 @@ app.post('/test/somedata', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}`)
 })
-
-
-const createAccessToken = (id) => {
-  return jwt.sign({ id }, ACCESS_TOKEN_SECRET, {
-    expiresIn: 5 * 60,
-  });
-};
-
-const createRefreshToken = (id) => {
-  return jwt.sign({ id }, ACCESS_TOKEN_SECRET, {
-    expiresIn: "90d",
-  });
-};
-
-const checkAccessToken = (authorization) => {
-  console.debug("authorization", authorization);
-  if (!authorization) {
-    return false;
-  }
-  const token = authorization.split(" ")[1];
-  console.debug("token", token);
-  let id;
-  try {
-    const verifyThing = jwt.verify(token, ACCESS_TOKEN_SECRET);
-    console.debug("verifyThing", verifyThing);
-    id = verifyThing.id;
-    console.debug("id", id);
-  } catch (err) {
-    console.error(err);
-    return false;
-  }
-  if (!id) {
-    return false;
-  }
-  
-  return id;
-}
