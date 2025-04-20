@@ -3,21 +3,11 @@ import jwt from "jsonwebtoken";
 
 import dbService from "../db-service.js";
 import teamsRoute from "./teams.js";
+import eventsRoute from "./events.js";
 
 const ACCESS_TOKEN_SECRET = 'this-is-my-super-secret-secret-that-noone-will-ever-find-out'; // TODO: place in secret file or so?
 const REFRESH_TOKEN_SECRET = 'this-is-my-not-so-super-secret-secret-that-noone-will-ever-find-out';
 
-const createAccessToken = (id) => {
-  return jwt.sign({ id }, ACCESS_TOKEN_SECRET, {
-    expiresIn: "1d",
-  });
-};
-
-const createRefreshToken = (id) => {
-  return jwt.sign({ id }, ACCESS_TOKEN_SECRET, {
-    expiresIn: "90d",
-  });
-};
 
 const router = express.Router();
 
@@ -44,5 +34,6 @@ router.use('/', (req, res, next) => {
 });
 
 router.use('/teams', teamsRoute);
+router.use('/events', eventsRoute);
 
 export default router;

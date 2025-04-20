@@ -39,13 +39,6 @@ main();*/
 // TODO:write script here to start db if not yet exists.
 
 
-const JOB_ENUM = [
-  "SCORER",
-  "BALLER",
-  "CLEANER",
-  "OFFICIAL"
-];
-
 const fetchUserByAuth = () => {
   return dbServices.getUserByEmail(db, "t@gmx.net");
 };
@@ -74,105 +67,6 @@ app.patch('/users', (req, res) => {
   }
   user.jobs = newJobs;
   res.status(200).json(user);
-});
-
-
-app.post('/teams/:teamId/events', (req, res) => {
-  const eventName = req.body.eventName ? req.body.eventName.trim() : "";
-  const dateTime = req.body.dateTime;
-
-  const adminUser = fetchUserByAuth();
-
-  const team = dbServices.getTeamById(db, req.params.teamId, adminUser.id);
-  if (!team) {
-    res.status(404).json({ error: "team not found" });
-    return;
-  }
-
-  const newJobs = req.body.jobs ? req.body.jobs : {};
-  if (!newJobs) {
-    res.status(400).json({ error: "must specify required jobs" });
-    return;
-  }
-
-  for (let job in newJobs) {
-    if (typeof job !== "string" || !JOB_ENUM.includes(job.toUpperCase())) {
-      res.status(400).json({ error: "invalid job type" });
-      return;
-    } else if (typeof newJobs[job] !== "number" || newJobs[job] < 0) {
-      res.status(400).json({ error: "invalid number of jobs" });
-      return;
-    }
-  }
-
-  const eventId = dbServices.createEvent(db, req.params.teamId, eventName, dateTime, newJobs);
-  const newEvent = {
-    id: eventId,
-    name: eventName,
-    dateTime: dateTime,
-    jobs: newJobs
-  }
-  res.status(202).json(newEvent);
-});
-
-app.delete('/teams/:teamId/events/:eventId', (req, res) => {
-  const adminUser = fetchUserByAuth();
-  const team = dbServices.getTeamById(db, req.params.teamId, adminUser.id);
-  if (!team) {
-    res.status(404).json({ error: "team not found" });
-    return;
-  }
-
-  const deletedRows = dbServices.removeEvent(db, req.params.teamId, req.params.eventId);
-  if (deletedRows === 0) {
-    console.warn("event does not exist");
-  }
-  res.status(200).json({ message:"event deleted" });
-});
-
-// access as admin
-app.get('/teams/:teamId/events', (req, res) => {
-  const adminUser = fetchUserByAuth();
-  const team = dbServices.getTeamById(db, req.params.teamId, adminUser.id);
-  if (!team) {
-    res.status(404).json({ error: "team not found" });
-    return;
-  }
-  const events = dbServices.getEventsByTeamId(db, req.params.teamId);
-  // TODO: enrich with more info
-  res.status(200).json(events);
-});
-
-// access as subscriber
-app.get('/events', (req, res) => {
-  const user = fetchUserByAuth();
-  const events = dbServices.getEventsBySubscriberId(db, user.id);
-  res.status(200).json(events);
-});
-
-// access as admin
-app.get('/teams/:teamId/events/:eventId', (req, res) => {
-  const adminUser = fetchUserByAuth();
-  const team = dbServices.getTeamById(db, req.params.teamId, adminUser.id);
-  if (!team) {
-    res.status(404).json({ error: "team not found" });
-    return;
-  }
-  const event = dbServices.getEventById(db, req.params.eventId);
-  if (!event) {
-    res.status(404).json({ error: "event not found" });
-    return;
-  }
-  const volunteers = dbServices.getUserXEventsByEventId(db, req.params.eventId);
-  const jobs = dbServices.getJobsByEventId(db, req.params.eventId);
-
-  res.status(200).json({e:event, v:volunteers, j:jobs});
-});
-
-// access as user
-app.get('/events/:eventId', (req, res) => {
-  const event = dbServices.getEventById(db, req.params.eventId);
-  res.status(200).json(event);
 });
 
 

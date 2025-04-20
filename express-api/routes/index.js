@@ -12,7 +12,7 @@ const REFRESH_TOKEN_SECRET = 'this-is-my-not-so-super-secret-secret-that-noone-w
 
 const createAccessToken = (id) => {
   return jwt.sign({ id }, ACCESS_TOKEN_SECRET, {
-    expiresIn: 5 * 60,
+    expiresIn: "1h",
   });
 };
 

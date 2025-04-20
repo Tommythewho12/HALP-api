@@ -1,10 +1,9 @@
 import express from "express";
 
 import dbService from "../db-service.js";
+import eventsRoute from "./events_admin.js";
 
-const router = express.Router({ mergeParams: true });
-
-export default router;
+const router = express.Router();
 
 router.post('/', (req, res) => {
   const teamName = req.body.teamName ? req.body.teamName.trim() : "";
@@ -27,45 +26,14 @@ router.post('/', (req, res) => {
   res.status(202).json(newTeam);
 });
 
-router.delete('/:teamId', (req, res) => {
-
-  const deletedRows = dbService.removeTeam(req.params.teamId, req.body.userId);
-  if (deletedRows === 0) {
-    console.warn("team does not exist");
-  }
-  res.status(200).json({ message:"team deleted" });
-});
+/* --------------------- */
+/* ---- user access ---- */
+/* --------------------- */
 
 // TODO: pagination, filter, ...
 router.get('/', (req, res) => {
   const teams = dbService.getTeams(req.body.userId);
   res.status(200).json(teams);
-});
-
-const setAdmin = (req, res, next) => {
-  const adminId = dbService.getTeamAdminId(req.params.teamId);
-  if (req.body.userId === adminId) {
-    req.body.isAdmin = true;
-  } else {
-    req.body.isAdmin = false;
-  }
-  next();
-};
-
-// TODO: check efficiency of double getTeamById call
-router.use("/:teamId", setAdmin);
-
-router.get('/:teamId', (req, res) => {
-  const team = dbService.getTeamById(req.params.teamId);
-  if (team) {
-    if (req.body.isAdmin) {
-      const subscribers = dbService.getUserXTeamByTeamId(req.params.teamId);
-      team.subscribers = subscribers;
-    }
-    res.status(200).json(team);
-  } else {
-    res.status(404).send( "team not found" );
-  }
 });
 
 // subscribe current user to team
@@ -91,3 +59,46 @@ router.delete('/:teamId/subscribers', (req, res) => {
   }
   res.status(200).json({ message: "unsubscribed from team" })
 });
+
+/* ---------------------- */
+/* ---- admin access ---- */
+/* ---------------------- */
+
+const checkIfAdmin = (req, res, next) => {
+  const adminId = dbService.getTeamAdminId(req.params.teamId);
+  
+  if (adminId === -1) {
+    res.status(404).send("team does not exist");
+    return;
+  }
+  
+  if (req.body.userId === adminId) {
+    next();
+    return;
+  }
+  
+  console.warn("trying to delete team without proper authorization");
+  res.status(403).send("no permissions for this action");
+};
+
+// TODO: check efficiency of double getTeamById call
+router.use("/:teamId", checkIfAdmin);
+
+router.delete('/:teamId', (req, res) => {
+  const deletedRows = dbService.removeTeam(req.params.teamId);
+  if (deletedRows === 0) {
+    console.error("cannot delete team because not exists; should not enter this code");
+  }
+  res.status(200).send("team deleted");
+});
+
+router.get('/:teamId', (req, res) => {
+  const team = dbService.getTeamById(req.params.teamId);
+  const subscribers = dbService.getUserXTeamByTeamId(req.params.teamId);
+  team.subscribers = subscribers;
+  res.status(200).json(team);
+});
+
+router.use('/:teamId/events', eventsRoute);
+
+export default router;

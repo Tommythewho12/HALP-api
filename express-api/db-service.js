@@ -35,9 +35,9 @@ const dbServices = {
     return stmt.run(teamName, adminId).lastInsertRowid;
   },
 
-  removeTeam: (teamId, adminId) => {
-    const stmt = db.prepare(`DELETE FROM team WHERE id=? AND admin_id=?`);
-    return stmt.run(teamId, adminId).changes;
+  removeTeam: (teamId) => {
+    const stmt = db.prepare(`DELETE FROM team WHERE id=?`);
+    return stmt.run(teamId).changes;
   },
 
   // TODO: pagination, filters, ...
@@ -48,7 +48,8 @@ const dbServices = {
   
   getTeamAdminId: (teamId) => {
     const stmt = db.prepare(`SELECT admin_id FROM team WHERE id=?`);
-    return stmt.get(teamId).admin_id;
+    const adminId = stmt.get(teamId);
+    return adminId ? adminId.admin_id : -1;
   },
 
   getTeamById: (teamId) => {
@@ -85,6 +86,7 @@ const dbServices = {
         stmt_job.run(jobType, eventId);
       }
     }
+    return eventId;
   },
 
   removeEvent: (teamId, eventId) => {
