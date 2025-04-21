@@ -4,10 +4,22 @@ const SQLITE_PATH = "../sqlite-db/halp.db";
 const db = new sqlite(SQLITE_PATH, { fileMustExist: true });
 db.pragma('journal_mode = WAL'); // TODO: wtf is this?
 
+// TODO:write script here to start db if not yet exists.
+
 const dbServices = {
   createUser: (displayName, email, password) => {
     const stmt = db.prepare(`INSERT INTO user (display_name, email, password) VALUES (?, ?, ?)`);
     return stmt.run(displayName, email, password).lastInsertRowid;
+  },
+  
+  updateUserRefreshToken: (userId, refreshToken) => {
+    const stmt = db.prepare(`UPDATE user SET refresh_token=? WHERE id=?`);
+    return stmt.run(refreshToken, userId);
+  },
+  
+  clearUserRefreshToken: (email) => {
+    const stmt = db.prepare(`UPDATE user SET refresh_token=NULL WHERE email=?`);
+    return stmt.run(email);
   },
 
   getUsers: () => {
@@ -127,6 +139,11 @@ const dbServices = {
   getUserXEventsByEventId: (eventId) => {
     const stmt = db.prepare(`SELECT u.id, u.display_name FROM userXevent uxe JOIN user u ON u.id=uxe.user_id WHERE uxe.event_id=?`);
     return stmt.all(eventId);
+  },
+  
+  getUserXEventsByUserIdAndEventId: (userId, eventId) => {
+    const stmt = db.prepare(`SELECT COUNT(*) AS 'exists' FROM userXevent WHERE user_id=? AND event_id=?`);
+    return stmt.get(userId, eventId).exists === 1;
   },
 
   createJob: (eventId, jobType) => {

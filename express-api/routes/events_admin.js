@@ -62,4 +62,46 @@ router.get('/:eventId', (req, res) => {
   res.status(200).json({e:event, v:volunteers, j:jobs});
 });
 
+
+router.post('/:eventId/jobs', (req, res) => {
+  // TODO: validate jobsType
+
+  try {
+    dbService.createJob(req.params.eventId, req.body.jobType);
+    res.status(202).send("job added");
+  } catch (err) {
+    console.error("POST:/auth/teams/:teamId/events/:eventId/jobs", err);
+    res.status(500).send("something went wrong");
+  }
+});
+
+router.delete('/:eventId/jobs/:jobId', (req, res) => {
+  const deletedRows = dbService.removeJob(req.params.jobId, req.params.eventId);
+  if (deletedRows === 0) {
+    console.warn("DELETE:/auth/teams/:teamId/events/:eventId/jobs/:jobId - job not assigned to eventId");
+  }
+  res.status(200).send("job removed");
+});
+
+// assign/unassign user to job
+router.patch('/:eventId/jobs/:jobId', (req, res) => {
+  // when adding check first if user is volunteering for event
+  if (req.body.volunteerId !== undefined) {
+    const isVolunteering = dbService.getUserXEventsByUserIdAndEventId(req.body.volunteerId, req.params.eventId);
+    if (!isVolunteering) {
+      console.info("PATCH:/teams/:teamId/events/:eventId/jobs/:jobId - trying to assign user that does not volunteer to job");
+      res.status(400).send("cannot assign users not volunteering");
+      return;
+    }
+  }
+  
+  // then add volunteer to job
+  const changedRows = dbService.updateJobHelper(req.params.jobId, req.params.eventId, req.body.volunteerId);
+  if (changedRows === 0) {
+    // TODO: fix - does not catch idempotent "changes"
+    console.warn("PUT:/auth/teams/:teamId/events/:eventId/jobs/:jobId - no changes performed");
+  }
+  res.status(200).send("helper un-/assigned");
+});
+
 export default router;

@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS user (
   display_name TEXT NOT NULL UNIQUE,
   email TEXT NOT NULL UNIQUE,
   password TEXT NOT NULL,
+  refresh_token TEXT,
   CHECK(display_name <> '' AND email <> '' AND password <> '')
 );
 

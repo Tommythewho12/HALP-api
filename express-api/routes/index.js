@@ -17,9 +17,11 @@ const createAccessToken = (id) => {
 };
 
 const createRefreshToken = (id) => {
-  return jwt.sign({ id }, ACCESS_TOKEN_SECRET, {
+  const refreshToken = jwt.sign({ id }, REFRESH_TOKEN_SECRET, {
     expiresIn: "90d",
   });
+  dbService.updateUserRefreshToken(id, refreshToken);
+  return refreshToken;
 };
 
 
@@ -79,7 +81,6 @@ router.post('/login', (req, res) => {
   if (user && bcrypt.compareSync(password, user.password)) {
     const accessToken = createAccessToken(user.id);
     const refreshToken = createRefreshToken(user.id);
-    // TODO: place refreshToken in DB
     
     res
       .status(200)
@@ -93,6 +94,17 @@ router.post('/login', (req, res) => {
     return;
   }
   res.status(500).send("something went wrong");
+});
+
+router.post('/logout', (req, res) => {
+  res.clearCookie("refreshToken");
+  dbService.clearUserRefreshToken(req.body.email);
+  return res.status(200).send("logged out successfully");
+});
+
+router.post("/refresh-token", (req, res) => {
+  // TODO: use refresh token for authentication token
+  // cont
 });
 
 export default router;

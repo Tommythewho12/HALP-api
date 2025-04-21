@@ -15,7 +15,7 @@ router.use('/', (req, res, next) => {
   let errorMessage = "";
   // check access token
   const authorizationHeader = req.headers["authorization"];
-  if (authorizationHeader) {
+  if (req.cookies.refreshToken && authorizationHeader && authorizationHeader.split(" ")[1]) {
     const accessToken = authorizationHeader.split(" ")[1];
     const id = jwt.verify(accessToken, ACCESS_TOKEN_SECRET).id;
     if (id) {
@@ -27,7 +27,7 @@ router.use('/', (req, res, next) => {
       errorMessage = "your session has expired. you must log in again";
     }
   } else {
-    console.info("Access denied: missing access token");
+    console.info("Access denied: missing refresh and/or access token");
     errorMessage = "you must first log in in order to access this resource"
   }
   res.status(403).send(errorMessage);
