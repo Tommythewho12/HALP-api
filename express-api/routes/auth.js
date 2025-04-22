@@ -1,12 +1,10 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 
-import dbService from "../db-service.js";
 import teamsRoute from "./teams.js";
 import eventsRoute from "./events.js";
 
 const ACCESS_TOKEN_SECRET = 'this-is-my-super-secret-secret-that-noone-will-ever-find-out'; // TODO: place in secret file or so?
-const REFRESH_TOKEN_SECRET = 'this-is-my-not-so-super-secret-secret-that-noone-will-ever-find-out';
 
 
 const router = express.Router();

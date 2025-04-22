@@ -6,8 +6,8 @@ import dbService from "../db-service.js";
 
 
 const SALT = process.env.SALT | 10;
-const ACCESS_TOKEN_SECRET = 'this-is-my-super-secret-secret-that-noone-will-ever-find-out'; // TODO: remove?
-const REFRESH_TOKEN_SECRET = 'this-is-my-not-so-super-secret-secret-that-noone-will-ever-find-out'; // TODO: remove?
+const ACCESS_TOKEN_SECRET = 'this-is-my-super-secret-secret-that-noone-will-ever-find-out';
+const REFRESH_TOKEN_SECRET = 'this-is-my-not-so-super-secret-secret-that-noone-will-ever-find-out';
 
 
 const createAccessToken = (id) => {
@@ -103,8 +103,49 @@ router.post('/logout', (req, res) => {
 });
 
 router.post("/refresh-token", (req, res) => {
-  // TODO: use refresh token for authentication token
-  // cont
+  try {
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) {
+      console.warn("trying to refresh acces token without refresh token");
+      return res.status(400).send("missing refresh token");
+    }
+
+    let userId;
+    try {
+      userId = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET).id;
+    } catch (err) {
+      console.warn("trying to refresh acces token with invalid refresh token");
+      return res.status(400).send("invalid refresh token");
+    }
+
+    if (!userId) {
+      console.warn("trying to refresh acces token with invalid refresh token");
+      return res.status(400).send("invalid refresh token");
+    }
+
+    let storedRefreshToken;
+    try {
+      storedRefreshToken = dbService.getUserRefreshTokenByUserId(userId);
+    } catch (err) {
+      console.error("error while trying to refresh access token", err);
+      return res.status(500).send("something went wrong");
+    }
+    
+    if (storedRefreshToken !== refreshToken) {
+      console.info("provided refresh token does not match stored refresh token");
+      return res.status(400).send("invalid refresh token");
+    }
+    
+    const newAccessToken = createAccessToken(userId);
+    return res
+      .status(200)
+      .json({ 
+        accessToken: newAccessToken,
+        msg: "re-authentication success"});
+  } catch (err) {
+    console.info("error trying to refresh acces token", err);
+    return res.status(500).send("something went wrong");
+  }
 });
 
 export default router;

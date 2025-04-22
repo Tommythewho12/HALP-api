@@ -21,6 +21,11 @@ const dbServices = {
     const stmt = db.prepare(`UPDATE user SET refresh_token=NULL WHERE email=?`);
     return stmt.run(email);
   },
+  
+  getUserRefreshTokenByUserId: (userId) => {
+    const stmt = db.prepare(`SELECT refresh_token as 'refreshToken' FROM user WHERE id=?`);
+    return stmt.get(userId).refreshToken;
+  },
 
   getUsers: () => {
     const stmt = db.prepare(`SELECT * FROM user`);
