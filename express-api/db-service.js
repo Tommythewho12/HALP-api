@@ -1,13 +1,43 @@
 import Database from "better-sqlite3";
+import fs from "node:fs";
+import path from "node:path";
 
+// TODO: move path to .env
 const SQLITE_PATH = "../sqlite-db/halp.db";
-const db = new Database(SQLITE_PATH, { fileMustExist: true });
-db.pragma('journal_mode = WAL');
+const INIT_SQL_PATH = "../sqlite-db/init_db.sql";
+const EXPECTED_TABLES = [
+  "user",
+  "team",
+  "userXteam",
+  "event",
+  "userXevent",
+  "job",
+];
 
-process.on("exit", () => {
-  console.info("closing connection to database");
-  db.close();
-});
+const isDatabaseValid = (db) => {
+  const tables = db.prepare(`SELECT name FROM sqlite_master WHERE type='table';`).all();
+  
+  for (let table of tables) {
+    if (!EXPECTED_TABLES.includes(table.name)) {
+      return false;
+    }
+  }
+  return EXPECTED_TABLES.length === tables.length;
+};
+
+const databaseInit = (db) => {
+  console.info("initializing database");
+  const dbInitScript = fs.readFileSync(path.join(import.meta.dirname, INIT_SQL_PATH), "utf8");
+  db.exec(dbInitScript);
+};
+
+const db = new Database(SQLITE_PATH);
+console.info("connected to database: ", SQLITE_PATH);
+db.pragma('journal_mode = WAL');
+  
+if (!isDatabaseValid(db)) {
+  databaseInit(db);
+}
 
 const dbServices = {
   createUser: (displayName, email, password) => {
@@ -181,3 +211,8 @@ const dbServices = {
 }
 
 export default dbServices;
+
+process.on("exit", () => {
+  console.info("closing connection to database");
+  db.close((err) => {if (err) return console.error(err.message);});
+});

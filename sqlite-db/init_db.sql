@@ -85,14 +85,3 @@ CREATE TABLE IF NOT EXISTS job (
     'OFFICIAL'
   ))
 );
-
--- fill in test data
-
-INSERT INTO user (id, display_name, email, password)
-  VALUES (1, 't', 't@gmx.net', 't');
-
-INSERT INTO team (id, name, admin_id)
-  VALUES (1, 'New Group', 1);
-
-INSERT INTO event (id, name, start_datetime, team_id)
-  VALUES (1, 'abc123', '2025-05-15T10:00', 1);

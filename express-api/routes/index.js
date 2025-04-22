@@ -12,7 +12,7 @@ const REFRESH_TOKEN_SECRET = 'this-is-my-not-so-super-secret-secret-that-noone-w
 
 const createAccessToken = (id) => {
   return jwt.sign({ id }, ACCESS_TOKEN_SECRET, {
-    expiresIn: "1h",
+    expiresIn: 5 * 60,
   });
 };
 
@@ -39,6 +39,7 @@ router.post('/signup', (req, res) => {
   }
 
   const passwordHash = bcrypt.hashSync(password, SALT);
+  console.debug("pw", passwordHash);
   try {
     const userId = dbService.createUser(displayName, email, passwordHash);
     res.status(202).send("User successfully created");
