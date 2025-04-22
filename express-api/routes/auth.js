@@ -6,7 +6,6 @@ import eventsRoute from "./events.js";
 
 const ACCESS_TOKEN_SECRET = 'this-is-my-super-secret-secret-that-noone-will-ever-find-out'; // TODO: place in secret file or so?
 
-
 const router = express.Router();
 
 router.use('/', (req, res, next) => {

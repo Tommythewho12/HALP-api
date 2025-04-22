@@ -1,10 +1,13 @@
-import sqlite from "better-sqlite3";
+import Database from "better-sqlite3";
 
 const SQLITE_PATH = "../sqlite-db/halp.db";
-const db = new sqlite(SQLITE_PATH, { fileMustExist: true });
-db.pragma('journal_mode = WAL'); // TODO: wtf is this?
+const db = new Database(SQLITE_PATH, { fileMustExist: true });
+db.pragma('journal_mode = WAL');
 
-// TODO:write script here to start db if not yet exists.
+process.on("exit", () => {
+  console.info("closing connection to database");
+  db.close();
+});
 
 const dbServices = {
   createUser: (displayName, email, password) => {

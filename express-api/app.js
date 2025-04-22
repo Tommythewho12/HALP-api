@@ -3,7 +3,6 @@
 
 import express from "express";
 import sqlite from "better-sqlite3";
-// import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
 import jwt from "jsonwebtoken";
 
@@ -37,31 +36,27 @@ const app = express();
 
 main();*/
 
-// TODO: remove logger?
-// const loggerFunction = (req, res, next) => {
-  // console.log("i am logging");
-  // next();
-// };
-
-// app.use(bodyParser.json());
 app.use(express.json());
 app.use(cookieParser());
-// app.use(loggerFunction);
 
 app.use('/', indexRoute);
 app.use('/auth', authRoute);
 
-// TODO:close db connection on shut down. THIS EVEN WORKS?
+const server = app.listen(PORT, () => {
+  console.log(`halp-api listening on port ${PORT}`)
+});
+
 process.on('SIGTERM', () => {
   debug('SIGTERM signal received: closing HTTP server');
-  db.close(() => {
-    console.log("db close");
-  });
   server.close(() => {
     debug('HTTP server closed');
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`halp-api listening on port ${PORT}`)
+process.on('SIGHUP', () => process.exit(128 + 1));
+process.on('SIGINT', () => process.exit(128 + 2));
+process.on('SIGTERM', () => process.exit(128 + 15));
+process.on('exit', (code) => {
+  console.info("shutting down halp-api at ", new Date());
+  console.info("halp-api shut down with code: ", code);
 });
