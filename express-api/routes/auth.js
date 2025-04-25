@@ -1,5 +1,10 @@
 import express from "express";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt"; // TODO: check alternatives; npm marks deprecated
+
+const SALT = process.env.SALT | 10;
+
+import dbService from "../db-service.js";
 
 import teamsRoute from "./teams.js";
 import eventsRoute from "./events.js";
@@ -28,6 +33,29 @@ router.use('/', (req, res, next) => {
     errorMessage = "you must first log in in order to access this resource"
   }
   res.status(403).send(errorMessage);
+});
+
+router.patch("/change-password", (req, res) => {
+  const oldPassword = req.body.oldPassword || "";
+  const newPassword = req.body.newPassword || "";
+  
+  const oldPasswordHash = dbService.getUserPasswordHashById(req.body.userId);
+  if (!bcrypt.compareSync(oldPassword, oldPasswordHash)) {
+    console.warn("updating password failed: old password was wrong");
+    return res.status(401).send("invalid credentials");
+  } else if (bcrypt.compareSync(newPassword, oldPasswordHash)) {
+    console.warn("updating password failed: new password equal to old password");
+    return res.status(400).send("you must select a new password");
+  } 
+  // TODO: add password requirements, also in /signup
+
+  const changes = dbService.updateUserPassword(req.body.userId, bcrypt.hashSync(newPassword, SALT));
+  if (changes != 1) {
+    console.warn("updating password failed");
+    return res.status(500).send("something went wrong while changing password");
+  }
+  // TODO: send email to inform about change-password
+  return res.status(200).send("password changed");
 });
 
 router.use('/teams', teamsRoute);

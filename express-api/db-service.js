@@ -59,6 +59,16 @@ const dbServices = {
     const stmt = db.prepare(`SELECT refresh_token as 'refreshToken' FROM user WHERE id=?`);
     return stmt.get(userId).refreshToken;
   },
+  
+  resetUserPassword: (email, password) => {
+    const stmt = db.prepare(`UPDATE user SET password=? WHERE email=?`);
+    return stmt.run(password, email).changes;
+  },
+  
+  updateUserPassword: (userId, newPassword) => {
+    const stmt = db.prepare(`UPDATE user SET password=? WHERE id=?`);
+    return stmt.run(newPassword, userId).changes;
+  },
 
   getUsers: () => {
     const stmt = db.prepare(`SELECT * FROM user`);
@@ -68,6 +78,11 @@ const dbServices = {
   getUserById: (userId) => {
     const stmt = db.prepare(`SELECT * FROM user WHERE id=?`);
     return stmt.get(userId);
+  },
+  
+  getUserPasswordHashById: (userId) => {
+    const stmt = db.prepare(`SELECT * FROM user WHERE id=?`);
+    return stmt.get(userId).password;
   },
 
   getUserByEmail: (email) => {

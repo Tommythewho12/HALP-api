@@ -3,12 +3,11 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt"; // TODO: check alternatives; npm marks deprecated
 
 import dbService from "../db-service.js";
-
+import emailService from "../email-service.js";
 
 const SALT = process.env.SALT | 10;
 const ACCESS_TOKEN_SECRET = 'this-is-my-super-secret-secret-that-noone-will-ever-find-out';
 const REFRESH_TOKEN_SECRET = 'this-is-my-not-so-super-secret-secret-that-noone-will-ever-find-out';
-
 
 const createAccessToken = (id) => {
   return jwt.sign({ id }, ACCESS_TOKEN_SECRET, {
@@ -24,6 +23,18 @@ const createRefreshToken = (id) => {
   return refreshToken;
 };
 
+const generateRandomPassword = (length) => {
+  let result = '';
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const charactersLength = characters.length;
+  let counter = 0;
+  while (counter < length) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    counter += 1;
+  }
+  return result;
+};
+
 
 const router = express.Router({ mergeParams: true });
 
@@ -37,9 +48,9 @@ router.post('/signup', (req, res) => {
     res.status(400).send("name, email, and password cannot be blank");
     return;
   }
+  // TODO: add password requirements also in /auth/change-password
 
   const passwordHash = bcrypt.hashSync(password, SALT);
-  console.debug("pw", passwordHash);
   try {
     const userId = dbService.createUser(displayName, email, passwordHash);
     res.status(202).send("User successfully created");
@@ -147,6 +158,29 @@ router.post("/refresh-token", (req, res) => {
     console.info("error trying to refresh acces token", err);
     return res.status(500).send("something went wrong");
   }
+});
+
+// TODO: only update password after email confirmation
+router.post("/reset-password", (req, res) => {
+  res.clearCookie("refreshToken");
+  
+  const email = req.body.email ? req.body.email.trim() : "";
+  const randomPassword = generateRandomPassword(8);
+  const hashedPassword = bcrypt.hashSync(randomPassword, SALT);
+  
+  const changes = dbService.resetUserPassword(email, hashedPassword);
+  if (changes == 0) {
+    console.info("password was not reset; email does not exist");
+  } else {
+    dbService.clearUserRefreshToken(req.body.email);
+    try {
+      emailService.sendMailPasswordReset(email, randomPassword);
+    } catch (err) {
+      console.log("error sending reset-email", err);
+      return;
+    }
+  }
+  return res.status(200).send("a new password was sent to your email");
 });
 
 export default router;
