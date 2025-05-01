@@ -142,9 +142,9 @@ const dbServices = {
     return stmt.all(teamId);
   },
 
-  createEvent: (teamId, eventName, dateTime, jobTypes) => {
-    const stmt_event = db.prepare(`INSERT INTO event (name, start_datetime, team_id) VALUES (?, ?, ?)`);
-    const eventId = stmt_event.run(eventName, dateTime, teamId).lastInsertRowid;
+  createEvent: (teamId, eventName, description, dateTime, jobTypes) => {
+    const stmt_event = db.prepare(`INSERT INTO event (name, description, start_datetime, team_id) VALUES (?, ?, ?)`);
+    const eventId = stmt_event.run(eventName, description, dateTime, teamId).lastInsertRowid;
     const stmt_job = db.prepare(`INSERT INTO job (type, event_id) VALUES (UPPER(?), ?)`);
     for (let jobType in jobTypes) {
       for (let i = 0; i < jobTypes[jobType]; i++) {

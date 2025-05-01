@@ -40,7 +40,10 @@ router.patch("/change-password", (req, res) => {
   const newPassword = req.body.newPassword || "";
   
   const oldPasswordHash = dbService.getUserPasswordHashById(req.body.userId);
-  if (!bcrypt.compareSync(oldPassword, oldPasswordHash)) {
+  if (oldPassword === "" || newPassword === "") {
+    console.warn("updating password failed: missing value for old or new password");
+    return res.status(400).send("password cannot be empty");
+  } else if (!bcrypt.compareSync(oldPassword, oldPasswordHash)) {
     console.warn("updating password failed: old password was wrong");
     return res.status(401).send("invalid credentials");
   } else if (bcrypt.compareSync(newPassword, oldPasswordHash)) {

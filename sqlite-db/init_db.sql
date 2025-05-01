@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS userXteam (
 CREATE TABLE IF NOT EXISTS event (
   id INTEGER PRIMARY KEY,
   name TEXT NOT NULL,
+  description TEXT,
   start_datetime TEXT NOT NULL,
   team_id INTEGER NOT NULL,
   FOREIGN KEY (team_id)

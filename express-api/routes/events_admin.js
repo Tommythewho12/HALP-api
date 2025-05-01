@@ -27,10 +27,11 @@ router.post('/', (req, res) => {
     }
   }
 
-  const eventId = dbService.createEvent(req.params.teamId, eventName, dateTime, newJobs);
+  const eventId = dbService.createEvent(req.params.teamId, eventName, description, dateTime, newJobs);
   const newEvent = {
     id: eventId,
     name: eventName,
+    description: description,
     dateTime: dateTime,
     jobs: newJobs
   }
