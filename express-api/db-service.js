@@ -16,7 +16,7 @@ const EXPECTED_TABLES = [
 
 const isDatabaseValid = (db) => {
   const tables = db.prepare(`SELECT name FROM sqlite_master WHERE type='table';`).all();
-  
+
   for (let table of tables) {
     if (!EXPECTED_TABLES.includes(table.name)) {
       return false;
@@ -34,7 +34,7 @@ const databaseInit = (db) => {
 const db = new Database(SQLITE_PATH);
 console.info("connected to database: ", SQLITE_PATH);
 db.pragma('journal_mode = WAL');
-  
+
 if (!isDatabaseValid(db)) {
   databaseInit(db);
 }
@@ -44,27 +44,27 @@ const dbServices = {
     const stmt = db.prepare(`INSERT INTO user (display_name, email, password) VALUES (?, ?, ?)`);
     return stmt.run(displayName, email, password).lastInsertRowid;
   },
-  
+
   updateUserRefreshToken: (userId, refreshToken) => {
     const stmt = db.prepare(`UPDATE user SET refresh_token=? WHERE id=?`);
     return stmt.run(refreshToken, userId);
   },
-  
+
   clearUserRefreshToken: (email) => {
     const stmt = db.prepare(`UPDATE user SET refresh_token=NULL WHERE email=?`);
     return stmt.run(email);
   },
-  
+
   getUserRefreshTokenByUserId: (userId) => {
     const stmt = db.prepare(`SELECT refresh_token as 'refreshToken' FROM user WHERE id=?`);
     return stmt.get(userId).refreshToken;
   },
-  
+
   resetUserPassword: (email, password) => {
     const stmt = db.prepare(`UPDATE user SET password=? WHERE email=?`);
     return stmt.run(password, email).changes;
   },
-  
+
   updateUserPassword: (userId, newPassword) => {
     const stmt = db.prepare(`UPDATE user SET password=? WHERE id=?`);
     return stmt.run(newPassword, userId).changes;
@@ -79,7 +79,7 @@ const dbServices = {
     const stmt = db.prepare(`SELECT * FROM user WHERE id=?`);
     return stmt.get(userId);
   },
-  
+
   getUserPasswordHashById: (userId) => {
     const stmt = db.prepare(`SELECT * FROM user WHERE id=?`);
     return stmt.get(userId).password;
@@ -110,7 +110,7 @@ const dbServices = {
     const stmt = db.prepare(`SELECT t.*, CASE WHEN uxt.team_id IS NOT NULL THEN TRUE ELSE FALSE END AS isSubscribed FROM team t LEFT JOIN (SELECT * FROM userXteam WHERE user_id=?) uxt ON t.id=uxt.team_id`);
     return stmt.all(userId);
   },
-  
+
   getTeamAdminId: (teamId) => {
     const stmt = db.prepare(`SELECT admin_id FROM team WHERE id=?`);
     const adminId = stmt.get(teamId);
@@ -136,14 +136,14 @@ const dbServices = {
     const stmt = db.prepare(`DELETE FROM userXteam WHERE user_id=? AND team_id=?`);
     return stmt.run(userId, teamId).changes;
   },
-  
+
   getUserXTeamByTeamId: (teamId) => {
     const stmt = db.prepare(`SELECT u.id, u.display_name FROM userXteam uxt JOIN user u ON uxt.user_id=u.id WHERE uxt.team_id=?`);
     return stmt.all(teamId);
   },
 
   createEvent: (teamId, eventName, description, dateTime, jobTypes) => {
-    const stmt_event = db.prepare(`INSERT INTO event (name, description, start_datetime, team_id) VALUES (?, ?, ?)`);
+    const stmt_event = db.prepare(`INSERT INTO event (name, description, start_datetime, team_id) VALUES (?, ?, ?, ?)`);
     const eventId = stmt_event.run(eventName, description, dateTime, teamId).lastInsertRowid;
     const stmt_job = db.prepare(`INSERT INTO job (type, event_id) VALUES (UPPER(?), ?)`);
     for (let jobType in jobTypes) {
@@ -174,6 +174,7 @@ const dbServices = {
     return stmt.all(teamId);
   },
 
+  // fetch all events from teams I am subscribed to
   getEventsBySubscriberId: (userId) => {
     const stmt = db.prepare(`SELECT e.* FROM event e JOIN userXteam uxt ON e.team_id=uxt.team_id WHERE uxt.user_id=?`);
     return stmt.all(userId);
@@ -193,7 +194,7 @@ const dbServices = {
     const stmt = db.prepare(`SELECT u.id, u.display_name FROM userXevent uxe JOIN user u ON u.id=uxe.user_id WHERE uxe.event_id=?`);
     return stmt.all(eventId);
   },
-  
+
   getUserXEventsByUserIdAndEventId: (userId, eventId) => {
     const stmt = db.prepare(`SELECT COUNT(*) AS 'exists' FROM userXevent WHERE user_id=? AND event_id=?`);
     return stmt.get(userId, eventId).exists === 1;
@@ -229,5 +230,5 @@ export default dbServices;
 
 process.on("exit", () => {
   console.info("closing connection to database");
-  db.close((err) => {if (err) return console.error(err.message);});
+  db.close((err) => { if (err) return console.error(err.message); });
 });

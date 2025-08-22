@@ -6,9 +6,10 @@ import { JOB_ENUM } from "../resources/constants.js";
 const router = express.Router({ mergeParams: true });
 
 router.post('/', (req, res) => {
-  const eventName = req.body.eventName ? req.body.eventName.trim() : "";
+  const eventName = req.body.eventName ? req.body.eventName.trim() : '';
   // TODO: validate of type time
   const dateTime = req.body.dateTime;
+  const description = req.body.description ? req.body.description : '';
 
   const newJobs = req.body.jobs ? req.body.jobs : {};
   if (!newJobs) {

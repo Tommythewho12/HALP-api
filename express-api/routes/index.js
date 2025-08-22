@@ -114,6 +114,7 @@ router.post('/logout', (req, res) => {
   return res.status(200).send("logged out successfully");
 });
 
+// TODO change to GET request
 router.post("/refresh-token", (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken;
@@ -181,6 +182,10 @@ router.post("/reset-password", (req, res) => {
     }
   }
   return res.status(200).send("a new password was sent to your email");
+});
+
+router.get("/test", (req, res) => {
+  return res.status(200).send("send feet pics!");
 });
 
 export default router;

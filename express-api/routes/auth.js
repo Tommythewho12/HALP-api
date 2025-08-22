@@ -61,6 +61,10 @@ router.patch("/change-password", (req, res) => {
   return res.status(200).send("password changed");
 });
 
+router.get("/secureTest", (_, res) => {
+  return res.status(200).send("send nudes!");
+});
+
 router.use('/teams', teamsRoute);
 router.use('/events', eventsRoute);
 

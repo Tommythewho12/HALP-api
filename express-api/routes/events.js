@@ -7,10 +7,12 @@ const router = express.Router();
 
 router.get('/', (req, res) => {
   // TODO: extend to possibly see events I am volunteering for but not subscribed to team
+  // get events of teams I am subscribed to
   const events = dbService.getEventsBySubscriberId(req.body.userId);
   res.status(200).json(events);
 });
 
+// volunteer for event
 router.post('/:eventId/volunteers', (req, res) => {
   try {
     dbService.createUserXEvent(req.body.userId, req.params.eventId);
@@ -33,6 +35,12 @@ router.delete('/:eventId/volunteers', (req, res) => {
     console.warn("DELETE:/auth/events/:eventId/volunteers - user not volunteering to event");
   }
   res.status(200).send("volunteer withdrawn from event");
+});
+
+router.get('/:eventId', (req, res) => {
+  console.info(`received request against /auth/events/${req.params.eventId}`);
+  const event = dbService.getEventById(req.params.eventId);
+  res.status(200).json(event);
 });
 
 export default router;

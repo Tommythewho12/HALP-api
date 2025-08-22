@@ -66,17 +66,17 @@ router.delete('/:teamId/subscribers', (req, res) => {
 
 const checkIfAdmin = (req, res, next) => {
   const adminId = dbService.getTeamAdminId(req.params.teamId);
-  
+
   if (adminId === -1) {
     res.status(404).send("team does not exist");
     return;
   }
-  
+
   if (req.body.userId === adminId) {
     next();
     return;
   }
-  
+
   console.warn("trying to delete team without proper authorization");
   res.status(403).send("no permissions for this action");
 };
@@ -93,6 +93,7 @@ router.delete('/:teamId', (req, res) => {
 });
 
 router.get('/:teamId', (req, res) => {
+  console.info(`received request against /auth/teams/${req.params.teamId}`);
   const team = dbService.getTeamById(req.params.teamId);
   const subscribers = dbService.getUserXTeamByTeamId(req.params.teamId);
   team.subscribers = subscribers;
