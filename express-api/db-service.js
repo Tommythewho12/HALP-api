@@ -164,6 +164,23 @@ const dbServices = {
     return stmt.get(eventId);
   },
 
+  getEnrichedEventByIdAndUserId: (eventId, userId) => {
+    const stmt = db.prepare(`
+      SELECT 
+        e.*,
+        CASE WHEN uxe.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_subscribed,
+        CASE WHEN j.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_assigned
+      FROM event e 
+      INNER JOIN userXteam uxt 
+        ON e.team_id=uxt.team_id
+      LEFT JOIN userXevent uxe
+        ON e.id = uxe.event_id AND uxe.user_id = uxt.user_id
+      LEFT JOIN job j
+        ON e.id = j.event_id AND j.user_id = uxt.user_id
+      WHERE e.id = ? AND uxt.user_id = ?`);
+    return stmt.get(eventId, userId);
+  },
+
   getEventByIdAndTeamId: (eventId, teamId) => {
     const stmt = db.prepare(`SELECT * FROM event WHERE id=? AND team_id=?`);
     return stmt.get(eventId, teamId);
@@ -177,6 +194,23 @@ const dbServices = {
   // fetch all events from teams I am subscribed to
   getEventsBySubscriberId: (userId) => {
     const stmt = db.prepare(`SELECT e.* FROM event e JOIN userXteam uxt ON e.team_id=uxt.team_id WHERE uxt.user_id=?`);
+    return stmt.all(userId);
+  },
+
+  getEnrichedEventsBySubscriberId: (userId) => {
+    const stmt = db.prepare(`
+      SELECT 
+        e.*,
+        CASE WHEN uxe.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_subscribed,
+        CASE WHEN j.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_assigned
+      FROM event e 
+      INNER JOIN userXteam uxt 
+        ON e.team_id=uxt.team_id
+      LEFT JOIN userXevent uxe
+        ON e.id = uxe.event_id AND uxe.user_id = uxt.user_id
+      LEFT JOIN job j
+        ON e.id = j.event_id AND j.user_id = uxt.user_id
+      WHERE uxt.user_id = ?`);
     return stmt.all(userId);
   },
 

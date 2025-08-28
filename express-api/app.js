@@ -2,13 +2,10 @@
 'use strict';
 
 import express from "express";
-import sqlite from "better-sqlite3";
 import cookieParser from "cookie-parser";
-import jwt from "jsonwebtoken";
 
 import indexRoute from "./routes/index.js";
 import authRoute from "./routes/auth.js";
-import dbServices from "./db-service.js";
 
 // TODO: outsource into .env file; remember to ignore .env in gitignore
 const PORT = process.env.HALP_API_PORT | 3000;
@@ -18,6 +15,19 @@ const app = express();
 
 app.use(express.json());
 app.use(cookieParser());
+
+app.use((req, res, next) => {
+  console.debug(`Incoming Request: ${req.method} ${req.originalUrl}`);
+
+  const originalSend = res.send;
+  res.send = function (body) {
+    console.debug(`Outgoing Response: ${res.statusCode}`);
+    console.debug(`Response Body: ${body}`);
+    return originalSend.call(this, body);
+  };
+
+  next();
+});
 
 app.use('/', indexRoute);
 app.use('/auth', authRoute);
