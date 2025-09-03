@@ -107,7 +107,7 @@ const dbServices = {
 
   // TODO: pagination, filters, ...
   getTeams: (userId) => {
-    const stmt = db.prepare(`SELECT t.*, CASE WHEN uxt.team_id IS NOT NULL THEN TRUE ELSE FALSE END AS isSubscribed FROM team t LEFT JOIN (SELECT * FROM userXteam WHERE user_id=?) uxt ON t.id=uxt.team_id`);
+    const stmt = db.prepare(`SELECT t.*, CASE WHEN uxt.team_id IS NOT NULL THEN TRUE ELSE FALSE END AS is_subscribed FROM team t LEFT JOIN (SELECT * FROM userXteam WHERE user_id=?) uxt ON t.id=uxt.team_id`);
     return stmt.all(userId);
   },
 
@@ -117,9 +117,24 @@ const dbServices = {
     return adminId ? adminId.admin_id : -1;
   },
 
-  getTeamById: (teamId) => {
-    const stmt = db.prepare(`SELECT t.id as teamId, t.name as teamName, u.display_name as adminName FROM team t JOIN user u ON u.id=t.admin_id WHERE t.id=?`);
-    return stmt.get(teamId);
+  getTeamById: (userId, teamId) => {
+    const stmt = db.prepare(`
+      SELECT 
+        t.id, 
+        t.name, 
+        u.display_name as admin_name, 
+        CASE WHEN uxt.team_id IS NOT NULL THEN TRUE ELSE FALSE END AS is_subscribed 
+      FROM team t 
+      JOIN user u 
+        ON u.id=t.admin_id 
+      LEFT JOIN (SELECT * FROM userXteam WHERE user_id=?) uxt 
+        ON t.id=uxt.team_id 
+      WHERE t.id=?`);
+    return stmt.get(userId, teamId);
+  },
+
+  getTeamByIdAsAdmin: (teamId) => {
+    // TODO make SQL to fetch team with all subscribers to avoid executing 2 SQL commands in teams.js GET '/:teamId'
   },
 
   existsTeamWithName: (teamName, adminId) => {

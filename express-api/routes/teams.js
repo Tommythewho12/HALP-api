@@ -36,6 +36,15 @@ router.get('/', (req, res) => {
   res.status(200).json(teams);
 });
 
+// figure out whether user is admin of group
+router.use('/:teamId', (req, _res, next) => {
+  const adminId = dbService.getTeamAdminId(req.params.teamId);
+  console.debug(`adminId: ${adminId}; userId: ${req.body.userId}`);
+  req.body.isUserAdmin = req.body.userId === adminId;
+  // TODO necessary?
+  next();
+});
+
 // subscribe current user to team
 router.post('/:teamId/subscribers', (req, res) => {
   try {
@@ -60,24 +69,39 @@ router.delete('/:teamId/subscribers', (req, res) => {
   res.status(200).json({ message: "unsubscribed from team" })
 });
 
+/* ----------------------- */
+/* ---- hybrid access ---- */
+/* ----------------------- */
+
+router.get('/:teamId', (req, res) => {
+  console.info(`received request against /auth/teams/${req.params.teamId}`);
+  // TODO replace with single sql command
+  const team = dbService.getTeamById(req.body.userId, req.params.teamId);
+  team.isUserAdmin = req.body.isUserAdmin;
+  if (req.body.isUserAdmin) {
+    console.debug('user is admin');
+    team.subscribers = dbService.getUserXTeamByTeamId(req.params.teamId);
+  } else {
+    console.debug('user is NOT admin');
+  }
+  res.status(200).json(team);
+});
+
 /* ---------------------- */
 /* ---- admin access ---- */
 /* ---------------------- */
 
 const checkIfAdmin = (req, res, next) => {
-  const adminId = dbService.getTeamAdminId(req.params.teamId);
+  // if (adminId === -1) {
+  //   res.status(404).send("team does not exist");
+  //   return;
+  // }
 
-  if (adminId === -1) {
-    res.status(404).send("team does not exist");
-    return;
-  }
-
-  if (req.body.userId === adminId) {
+  if (req.params.isUserAdmin) {
     next();
     return;
   }
-
-  console.warn("trying to delete team without proper authorization");
+  console.warn("trying to execute priviledged actions on team without proper authorization");
   res.status(403).send("no permissions for this action");
 };
 
@@ -90,14 +114,6 @@ router.delete('/:teamId', (req, res) => {
     console.error("cannot delete team because not exists; should not enter this code");
   }
   res.status(200).send("team deleted");
-});
-
-router.get('/:teamId', (req, res) => {
-  console.info(`received request against /auth/teams/${req.params.teamId}`);
-  const team = dbService.getTeamById(req.params.teamId);
-  const subscribers = dbService.getUserXTeamByTeamId(req.params.teamId);
-  team.subscribers = subscribers;
-  res.status(200).json(team);
 });
 
 router.use('/:teamId/events', eventsRoute);
