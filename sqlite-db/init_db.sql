@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS event (
   description TEXT,
   start_datetime TEXT NOT NULL,
   team_id INTEGER NOT NULL,
+  complete INTEGER DEFAULT 0,
   FOREIGN KEY (team_id)
     REFERENCES team(id)
       ON UPDATE CASCADE

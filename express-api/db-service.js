@@ -6,29 +6,29 @@ import path from "node:path";
 const SQLITE_PATH = "../sqlite-db/halp.db";
 const INIT_SQL_PATH = "../sqlite-db/init_db.sql";
 const EXPECTED_TABLES = [
-  "user",
-  "team",
-  "userXteam",
-  "event",
-  "userXevent",
-  "job",
+    "user",
+    "team",
+    "userXteam",
+    "event",
+    "userXevent",
+    "job",
 ];
 
 const isDatabaseValid = (db) => {
-  const tables = db.prepare(`SELECT name FROM sqlite_master WHERE type='table';`).all();
+    const tables = db.prepare(`SELECT name FROM sqlite_master WHERE type='table';`).all();
 
-  for (let table of tables) {
-    if (!EXPECTED_TABLES.includes(table.name)) {
-      return false;
+    for (let table of tables) {
+        if (!EXPECTED_TABLES.includes(table.name)) {
+            return false;
+        }
     }
-  }
-  return EXPECTED_TABLES.length === tables.length;
+    return EXPECTED_TABLES.length === tables.length;
 };
 
 const databaseInit = (db) => {
-  console.info("initializing database");
-  const dbInitScript = fs.readFileSync(path.join(import.meta.dirname, INIT_SQL_PATH), "utf8");
-  db.exec(dbInitScript);
+    console.info("initializing database");
+    const dbInitScript = fs.readFileSync(path.join(import.meta.dirname, INIT_SQL_PATH), "utf8");
+    db.exec(dbInitScript);
 };
 
 const db = new Database(SQLITE_PATH);
@@ -36,89 +36,90 @@ console.info("connected to database: ", SQLITE_PATH);
 db.pragma('journal_mode = WAL');
 
 if (!isDatabaseValid(db)) {
-  databaseInit(db);
+    databaseInit(db);
 }
 
 const dbServices = {
-  createUser: (displayName, email, password) => {
-    const stmt = db.prepare(`INSERT INTO user (display_name, email, password) VALUES (?, ?, ?)`);
-    return stmt.run(displayName, email, password).lastInsertRowid;
-  },
+    createUser: (displayName, email, password) => {
+        const stmt = db.prepare(`INSERT INTO user (display_name, email, password) VALUES (?, ?, ?)`);
+        return stmt.run(displayName, email, password).lastInsertRowid;
+    },
 
-  updateUserRefreshToken: (userId, refreshToken) => {
-    const stmt = db.prepare(`UPDATE user SET refresh_token=? WHERE id=?`);
-    return stmt.run(refreshToken, userId);
-  },
+    updateUserRefreshToken: (userId, refreshToken) => {
+        const stmt = db.prepare(`UPDATE user SET refresh_token=? WHERE id=?`);
+        return stmt.run(refreshToken, userId);
+    },
 
-  clearUserRefreshToken: (email) => {
-    const stmt = db.prepare(`UPDATE user SET refresh_token=NULL WHERE email=?`);
-    return stmt.run(email);
-  },
+    clearUserRefreshToken: (email) => {
+        const stmt = db.prepare(`UPDATE user SET refresh_token=NULL WHERE email=?`);
+        return stmt.run(email);
+    },
 
-  getUserRefreshTokenByUserId: (userId) => {
-    const stmt = db.prepare(`SELECT refresh_token as 'refreshToken' FROM user WHERE id=?`);
-    return stmt.get(userId).refreshToken;
-  },
+    getUserRefreshTokenByUserId: (userId) => {
+        const stmt = db.prepare(`SELECT refresh_token as 'refreshToken' FROM user WHERE id=?`);
+        return stmt.get(userId).refreshToken;
+    },
 
-  resetUserPassword: (email, password) => {
-    const stmt = db.prepare(`UPDATE user SET password=? WHERE email=?`);
-    return stmt.run(password, email).changes;
-  },
+    resetUserPassword: (email, password) => {
+        const stmt = db.prepare(`UPDATE user SET password=? WHERE email=?`);
+        return stmt.run(password, email).changes;
+    },
 
-  updateUserPassword: (userId, newPassword) => {
-    const stmt = db.prepare(`UPDATE user SET password=? WHERE id=?`);
-    return stmt.run(newPassword, userId).changes;
-  },
+    updateUserPassword: (userId, newPassword) => {
+        const stmt = db.prepare(`UPDATE user SET password=? WHERE id=?`);
+        return stmt.run(newPassword, userId).changes;
+    },
 
-  getUsers: () => {
-    const stmt = db.prepare(`SELECT * FROM user`);
-    return stmt.all();
-  },
+    getUsers: () => {
+        const stmt = db.prepare(`SELECT * FROM user`);
+        return stmt.all();
+    },
 
-  getUserById: (userId) => {
-    const stmt = db.prepare(`SELECT * FROM user WHERE id=?`);
-    return stmt.get(userId);
-  },
+    getUserById: (userId) => {
+        const stmt = db.prepare(`SELECT * FROM user WHERE id=?`);
+        return stmt.get(userId);
+    },
 
-  getUserPasswordHashById: (userId) => {
-    const stmt = db.prepare(`SELECT * FROM user WHERE id=?`);
-    return stmt.get(userId).password;
-  },
+    getUserPasswordHashById: (userId) => {
+        const stmt = db.prepare(`SELECT * FROM user WHERE id=?`);
+        return stmt.get(userId).password;
+    },
 
-  getUserByEmail: (email) => {
-    const stmt = db.prepare(`SELECT * FROM user WHERE email=?`);
-    return stmt.get(email);
-  },
+    getUserByEmail: (email) => {
+        const stmt = db.prepare(`SELECT * FROM user WHERE email=?`);
+        return stmt.get(email);
+    },
 
-  existsUserWithDisplayName: (displayName) => {
-    const stmt = db.prepare(`SELECT COUNT(*) as 'exists' FROM user WHERE display_name=?`);
-    return stmt.get(displayName).exists === 1;
-  },
+    existsUserWithDisplayName: (displayName) => {
+        const stmt = db.prepare(`SELECT COUNT(*) as 'exists' FROM user WHERE display_name=?`);
+        return stmt.get(displayName).exists === 1;
+    },
 
-  createTeam: (teamName, adminId) => {
-    const stmt = db.prepare(`INSERT INTO team (name, admin_id) VALUES (?, ?)`);
-    return stmt.run(teamName, adminId).lastInsertRowid;
-  },
+    createTeam: (teamName, adminId) => {
+        const stmt = db.prepare(`INSERT INTO team (name, admin_id) VALUES (?, ?)`);
+        return stmt.run(teamName, adminId).lastInsertRowid;
+    },
 
-  removeTeam: (teamId) => {
-    const stmt = db.prepare(`DELETE FROM team WHERE id=?`);
-    return stmt.run(teamId).changes;
-  },
+    removeTeam: (teamId) => {
+        const stmt = db.prepare(`DELETE FROM team WHERE id=?`);
+        return stmt.run(teamId).changes;
+    },
 
-  // TODO: pagination, filters, ...
-  getTeams: (userId) => {
-    const stmt = db.prepare(`SELECT t.*, CASE WHEN uxt.team_id IS NOT NULL THEN TRUE ELSE FALSE END AS is_subscribed FROM team t LEFT JOIN (SELECT * FROM userXteam WHERE user_id=?) uxt ON t.id=uxt.team_id`);
-    return stmt.all(userId);
-  },
+    // TODO: pagination, filters, ...
+    // 
+    getTeams: (userId) => {
+        const stmt = db.prepare(`SELECT t.*, CASE WHEN uxt.team_id IS NOT NULL THEN TRUE ELSE FALSE END AS is_subscribed FROM team t LEFT JOIN (SELECT * FROM userXteam WHERE user_id=?) uxt ON t.id=uxt.team_id`);
+        return stmt.all(userId);
+    },
 
-  getTeamAdminId: (teamId) => {
-    const stmt = db.prepare(`SELECT admin_id FROM team WHERE id=?`);
-    const adminId = stmt.get(teamId);
-    return adminId ? adminId.admin_id : -1;
-  },
+    getTeamAdminId: (teamId) => {
+        const stmt = db.prepare(`SELECT admin_id FROM team WHERE id=?`);
+        const adminId = stmt.get(teamId);
+        return adminId ? adminId.admin_id : -1;
+    },
 
-  getTeamById: (userId, teamId) => {
-    const stmt = db.prepare(`
+    getTeamById: (userId, teamId) => {
+        const stmt = db.prepare(`
       SELECT 
         t.id, 
         t.name, 
@@ -130,57 +131,57 @@ const dbServices = {
       LEFT JOIN (SELECT * FROM userXteam WHERE user_id=?) uxt 
         ON t.id=uxt.team_id 
       WHERE t.id=?`);
-    return stmt.get(userId, teamId);
-  },
+        return stmt.get(userId, teamId);
+    },
 
-  getTeamByIdAsAdmin: (teamId) => {
-    // TODO make SQL to fetch team with all subscribers to avoid executing 2 SQL commands in teams.js GET '/:teamId'
-  },
+    getTeamByIdAsAdmin: (teamId) => {
+        // TODO make SQL to fetch team with all subscribers to avoid executing 2 SQL commands in teams.js GET '/:teamId'
+    },
 
-  existsTeamWithName: (teamName, adminId) => {
-    const stmt = db.prepare(`SELECT COUNT(*) as 'exists' FROM team WHERE name=? AND admin_id=?`);
-    return stmt.get(teamName, adminId).exists === 1;
-  },
+    existsTeamWithName: (teamName, adminId) => {
+        const stmt = db.prepare(`SELECT COUNT(*) as 'exists' FROM team WHERE name=? AND admin_id=?`);
+        return stmt.get(teamName, adminId).exists === 1;
+    },
 
-  createUserXTeam: (userId, teamId) => {
-    const stmt = db.prepare(`INSERT INTO userXteam VALUES (?, ?)`);
-    return stmt.run(userId, teamId);
-  },
+    createUserXTeam: (userId, teamId) => {
+        const stmt = db.prepare(`INSERT INTO userXteam VALUES (?, ?)`);
+        return stmt.run(userId, teamId);
+    },
 
-  removeUserXTeam: (userId, teamId) => {
-    const stmt = db.prepare(`DELETE FROM userXteam WHERE user_id=? AND team_id=?`);
-    return stmt.run(userId, teamId).changes;
-  },
+    removeUserXTeam: (userId, teamId) => {
+        const stmt = db.prepare(`DELETE FROM userXteam WHERE user_id=? AND team_id=?`);
+        return stmt.run(userId, teamId).changes;
+    },
 
-  getUserXTeamByTeamId: (teamId) => {
-    const stmt = db.prepare(`SELECT u.id, u.display_name FROM userXteam uxt JOIN user u ON uxt.user_id=u.id WHERE uxt.team_id=?`);
-    return stmt.all(teamId);
-  },
+    getUserXTeamByTeamId: (teamId) => {
+        const stmt = db.prepare(`SELECT u.id, u.display_name FROM userXteam uxt JOIN user u ON uxt.user_id=u.id WHERE uxt.team_id=?`);
+        return stmt.all(teamId);
+    },
 
-  createEvent: (teamId, eventName, description, dateTime, jobTypes) => {
-    const stmt_event = db.prepare(`INSERT INTO event (name, description, start_datetime, team_id) VALUES (?, ?, ?, ?)`);
-    const eventId = stmt_event.run(eventName, description, dateTime, teamId).lastInsertRowid;
-    const stmt_job = db.prepare(`INSERT INTO job (type, event_id) VALUES (UPPER(?), ?)`);
-    for (let jobType in jobTypes) {
-      for (let i = 0; i < jobTypes[jobType]; i++) {
-        stmt_job.run(jobType, eventId);
-      }
-    }
-    return eventId;
-  },
+    createEvent: (teamId, eventName, description, dateTime, jobTypes) => {
+        const stmt_event = db.prepare(`INSERT INTO event (name, description, start_datetime, team_id) VALUES (?, ?, ?, ?)`);
+        const eventId = stmt_event.run(eventName, description, dateTime, teamId).lastInsertRowid;
+        const stmt_job = db.prepare(`INSERT INTO job (type, event_id) VALUES (UPPER(?), ?)`);
+        for (let jobType in jobTypes) {
+            for (let i = 0; i < jobTypes[jobType]; i++) {
+                stmt_job.run(jobType, eventId);
+            }
+        }
+        return eventId;
+    },
 
-  removeEvent: (teamId, eventId) => {
-    const stmt = db.prepare(`DELETE FROM event WHERE id=? AND team_id=?`);
-    return stmt.run(eventId, teamId).changes;
-  },
+    removeEvent: (teamId, eventId) => {
+        const stmt = db.prepare(`DELETE FROM event WHERE id=? AND team_id=?`);
+        return stmt.run(eventId, teamId).changes;
+    },
 
-  getEventById: (eventId) => {
-    const stmt = db.prepare(`SELECT * FROM event WHERE id=?`);
-    return stmt.get(eventId);
-  },
+    getEventById: (eventId) => {
+        const stmt = db.prepare(`SELECT * FROM event WHERE id=?`);
+        return stmt.get(eventId);
+    },
 
-  getEnrichedEventByIdAndUserId: (eventId, userId) => {
-    const stmt = db.prepare(`
+    getEnrichedEventByIdAndUserId: (eventId, userId) => {
+        const stmt = db.prepare(`
       SELECT 
         e.*,
         CASE WHEN uxe.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_subscribed,
@@ -193,91 +194,146 @@ const dbServices = {
       LEFT JOIN job j
         ON e.id = j.event_id AND j.user_id = uxt.user_id
       WHERE e.id = ? AND uxt.user_id = ?`);
-    return stmt.get(eventId, userId);
-  },
+        return stmt.get(eventId, userId);
+    },
 
-  getEventByIdAndTeamId: (eventId, teamId) => {
-    const stmt = db.prepare(`SELECT * FROM event WHERE id=? AND team_id=?`);
-    return stmt.get(eventId, teamId);
-  },
+    getEventByIdAndTeamId: (eventId, teamId) => {
+        const stmt = db.prepare(`SELECT * FROM event WHERE id=? AND team_id=?`);
+        return stmt.get(eventId, teamId);
+    },
 
-  getEventsByTeamId: (teamId) => {
-    const stmt = db.prepare(`SELECT * FROM event WHERE team_id=?`);
-    return stmt.all(teamId);
-  },
+    getEventsByTeamId: (teamId) => {
+        const stmt = db.prepare(`SELECT * FROM event WHERE team_id=?`);
+        return stmt.all(teamId);
+    },
 
-  // fetch all events from teams I am subscribed to
-  getEventsBySubscriberId: (userId) => {
-    const stmt = db.prepare(`SELECT e.* FROM event e JOIN userXteam uxt ON e.team_id=uxt.team_id WHERE uxt.user_id=?`);
-    return stmt.all(userId);
-  },
+    // fetch all events from teams I am subscribed to
+    getEventsBySubscriberId: (userId) => {
+        const stmt = db.prepare(`
+            SELECT 
+                e.* 
+            FROM event e 
+            JOIN userXteam uxt 
+                ON e.team_id=uxt.team_id 
+            WHERE 
+                uxt.user_id=?
+            `);
+        return stmt.all(userId);
+    },
 
-  getEnrichedEventsBySubscriberId: (userId) => {
-    const stmt = db.prepare(`
-      SELECT 
-        e.*,
-        CASE WHEN uxe.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_subscribed,
-        CASE WHEN j.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_assigned
-      FROM event e 
-      INNER JOIN userXteam uxt 
-        ON e.team_id=uxt.team_id
-      LEFT JOIN userXevent uxe
-        ON e.id = uxe.event_id AND uxe.user_id = uxt.user_id
-      LEFT JOIN job j
-        ON e.id = j.event_id AND j.user_id = uxt.user_id
-      WHERE uxt.user_id = ?`);
-    return stmt.all(userId);
-  },
+    // deprecated
+    getEnrichedEventsBySubscriberId: (userId) => {
+        const stmt = db.prepare(`
+            SELECT
+                e.*,
+                CASE WHEN uxe.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_subscribed,
+                CASE WHEN j.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_assigned
+            FROM event e
+            INNER JOIN userXteam uxt
+                ON e.team_id=uxt.team_id
+            LEFT JOIN userXevent uxe
+                ON e.id = uxe.event_id AND uxe.user_id = uxt.user_id
+            LEFT JOIN job j
+                ON e.id = j.event_id AND j.user_id = uxt.user_id
+            WHERE
+                uxt.user_id = ?`);
+        return stmt.all(userId);
+    },
 
-  createUserXEvent: (userId, eventId) => {
-    const stmt = db.prepare(`INSERT INTO userXevent VALUES (?, ?)`);
-    return stmt.run(userId, eventId);
-  },
+    getEventsBySubscriberIdAsAdmin: (userId) => {
+        const stmt = db.prepare(`
+            SELECT
+                e.*
+            FROM event e
+            INNER JOIN team t
+                ON e.team_id = t.id
+            WHERE
+                t.admin_id = ?`);
+        return stmt.all(userId);
+    },
 
-  removeUserXEvent: (userId, eventId) => {
-    const stmt = db.prepare(`DELETE FROM userXevent WHERE user_id=? AND event_id=?`);
-    return stmt.run(userId, eventId).changes;
-  },
+    getEventsBySubscriberIdAsVolunteer: (userId) => {
+        const stmt = db.prepare(`
+            SELECT
+                e.*,
+                CASE WHEN j.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_assigned
+            FROM event e
+            INNER JOIN userXevent uxe
+                ON e.id = uxe.event_id
+            LEFT JOIN job j
+                ON e.id = j.event_id AND
+                    j.user_id = uxe.user_id
+            WHERE
+                uxe.user_id = ?`);
+        return stmt.all(userId);
+    },
 
-  getUserXEventsByEventId: (eventId) => {
-    const stmt = db.prepare(`SELECT u.id, u.display_name FROM userXevent uxe JOIN user u ON u.id=uxe.user_id WHERE uxe.event_id=?`);
-    return stmt.all(eventId);
-  },
+    // this excludes events already volunteered for
+    getEventsBySubscriberIdAsSubscriber: (userId) => {
+        const stmt = db.prepare(`
+            SELECT 
+                e.*
+            FROM event e 
+            INNER JOIN userXteam uxt 
+                ON e.team_id=uxt.team_id
+            LEFT JOIN userXevent uxe
+                ON e.id = uxe.event_id
+                    AND uxe.user_id = uxt.user_id
+            WHERE 
+                uxt.user_id = ?
+                    AND uxe.event_id IS NULL`);
+        return stmt.all(userId);
+    },
 
-  getUserXEventsByUserIdAndEventId: (userId, eventId) => {
-    const stmt = db.prepare(`SELECT COUNT(*) AS 'exists' FROM userXevent WHERE user_id=? AND event_id=?`);
-    return stmt.get(userId, eventId).exists === 1;
-  },
+    createUserXEvent: (userId, eventId) => {
+        const stmt = db.prepare(`INSERT INTO userXevent VALUES (?, ?)`);
+        return stmt.run(userId, eventId);
+    },
 
-  createJob: (eventId, jobType) => {
-    const stmt = db.prepare(`INSERT INTO job (event_id, type) VALUES (?, ?)`);
-    return stmt.run(eventId, jobType).lastInsertRowid;
-  },
+    removeUserXEvent: (userId, eventId) => {
+        const stmt = db.prepare(`DELETE FROM userXevent WHERE user_id=? AND event_id=?`);
+        return stmt.run(userId, eventId).changes;
+    },
 
-  removeJob: (jobId, eventId) => {
-    const stmt = db.prepare(`DELETE FROM job WHERE id=? AND event_id=?`);
-    return stmt.run(jobId, eventId).changes;
-  },
+    getUserXEventsByEventId: (eventId) => {
+        const stmt = db.prepare(`SELECT u.id, u.display_name FROM userXevent uxe JOIN user u ON u.id=uxe.user_id WHERE uxe.event_id=?`);
+        return stmt.all(eventId);
+    },
 
-  getJobsByEventId: (eventId) => {
-    const stmt = db.prepare(`SELECT j.id, j.type, u.id as helperId, u.display_name as helper FROM job j LEFT JOIN user u ON u.id=j.user_id WHERE j.event_id=?`);
-    return stmt.all(eventId);
-  },
+    getUserXEventsByUserIdAndEventId: (userId, eventId) => {
+        const stmt = db.prepare(`SELECT COUNT(*) AS 'exists' FROM userXevent WHERE user_id=? AND event_id=?`);
+        return stmt.get(userId, eventId).exists === 1;
+    },
 
-  updateJobHelper: (jobId, eventId, userId) => {
-    if (userId) {
-      const stmt = db.prepare(`UPDATE job SET user_id=? WHERE id=? AND event_id=?`);
-      return stmt.run(userId, jobId, eventId).changes;
-    } else {
-      const stmt = db.prepare(`UPDATE job SET user_id=NULL WHERE id=? AND event_id=?`);
-      return stmt.run(jobId, eventId).changes;
+    createJob: (eventId, jobType) => {
+        const stmt = db.prepare(`INSERT INTO job (event_id, type) VALUES (?, ?)`);
+        return stmt.run(eventId, jobType).lastInsertRowid;
+    },
+
+    removeJob: (jobId, eventId) => {
+        const stmt = db.prepare(`DELETE FROM job WHERE id=? AND event_id=?`);
+        return stmt.run(jobId, eventId).changes;
+    },
+
+    getJobsByEventId: (eventId) => {
+        const stmt = db.prepare(`SELECT j.id, j.type, u.id as helperId, u.display_name as helper FROM job j LEFT JOIN user u ON u.id=j.user_id WHERE j.event_id=?`);
+        return stmt.all(eventId);
+    },
+
+    updateJobHelper: (jobId, eventId, userId) => {
+        if (userId) {
+            const stmt = db.prepare(`UPDATE job SET user_id=? WHERE id=? AND event_id=?`);
+            return stmt.run(userId, jobId, eventId).changes;
+        } else {
+            const stmt = db.prepare(`UPDATE job SET user_id=NULL WHERE id=? AND event_id=?`);
+            return stmt.run(jobId, eventId).changes;
+        }
     }
-  }
 }
 
 export default dbServices;
 
 process.on("exit", () => {
-  console.info("closing connection to database");
-  db.close((err) => { if (err) return console.error(err.message); });
+    console.info("closing connection to database");
+    db.close((err) => { if (err) return console.error(err.message); });
 });

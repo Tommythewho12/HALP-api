@@ -38,7 +38,7 @@ router.use('/', (req, res, next) => {
 router.patch("/change-password", (req, res) => {
   const oldPassword = req.body.oldPassword || "";
   const newPassword = req.body.newPassword || "";
-  
+
   const oldPasswordHash = dbService.getUserPasswordHashById(req.body.userId);
   if (oldPassword === "" || newPassword === "") {
     console.warn("updating password failed: missing value for old or new password");
@@ -49,7 +49,7 @@ router.patch("/change-password", (req, res) => {
   } else if (bcrypt.compareSync(newPassword, oldPasswordHash)) {
     console.warn("updating password failed: new password equal to old password");
     return res.status(400).send("you must select a new password");
-  } 
+  }
   // TODO: add password requirements, also in /signup
 
   const changes = dbService.updateUserPassword(req.body.userId, bcrypt.hashSync(newPassword, SALT));
