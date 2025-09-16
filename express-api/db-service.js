@@ -107,9 +107,32 @@ const dbServices = {
 
     // TODO: pagination, filters, ...
     // 
-    getTeams: (userId) => {
-        const stmt = db.prepare(`SELECT t.*, CASE WHEN uxt.team_id IS NOT NULL THEN TRUE ELSE FALSE END AS is_subscribed FROM team t LEFT JOIN (SELECT * FROM userXteam WHERE user_id=?) uxt ON t.id=uxt.team_id`);
+    getAllTeams: (userId) => {
+        const stmt = db.prepare(`
+            SELECT 
+                *
+            FROM team`);
         return stmt.all(userId);
+    },
+
+    getEnrichedTeams: (userId) => {
+        const stmt = db.prepare(`
+            SELECT 
+                t.*, 
+                CASE WHEN uxt.team_id IS NOT NULL THEN TRUE ELSE FALSE END AS is_subscribed 
+            FROM team t 
+            LEFT JOIN (SELECT * FROM userXteam WHERE user_id=?) uxt 
+                ON t.id=uxt.team_id`);
+        return stmt.all(userId);
+    },
+
+    getTeamsByAdminId: (teamId) => {
+        const stmt = db.prepare(`
+            SELECT 
+                *
+            FROM team
+            WHERE admin_id=?`);
+        return stmt.all(teamId);
     },
 
     getTeamAdminId: (teamId) => {

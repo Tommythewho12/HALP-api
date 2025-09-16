@@ -18,11 +18,12 @@ router.get('/', (req, res) => {
             events = dbService.getEventsBySubscriberIdAsSubscriber(req.body.userId);
             res.status(200).json(events);
             break;
-        default:
-            console.warn('unidentified queryparameter; using default "admin"');
         case 'admin':
             events = dbService.getEventsBySubscriberIdAsAdmin(req.body.userId);
             res.status(200).json(events);
+            break;
+        default:
+            console.warn('unknown query parameter');
     }
 });
 
