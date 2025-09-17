@@ -32,16 +32,19 @@ router.post('/', (req, res) => {
 
 // TODO: pagination, filter, ...
 router.get('/', (req, res) => {
+    const userId = req.body.userId;
     let teams;
     switch (req.query.as) {
         case 'admin':
-            teams = dbService.getTeamsByAdminId(req.body.userId);
+            teams = dbService.getTeamsByAdminId(userId);
+            res.status(200).json(teams);
+            break;
+        case 'user':
+            teams = dbService.getEnrichedTeams(userId);
             res.status(200).json(teams);
             break;
         default:
-            console.warn("unkown query parameter; using default 'user'")
-        case 'user':
-            teams = dbService.getEnrichedTeams(req.body.userId);
+            teams = dbService.getAllTeams(userId);
             res.status(200).json(teams);
     }
 });

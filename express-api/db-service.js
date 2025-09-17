@@ -110,7 +110,8 @@ const dbServices = {
     getAllTeams: (userId) => {
         const stmt = db.prepare(`
             SELECT 
-                *
+                *,
+                CASE WHEN admin_id = ? THEN TRUE ELSE FALSE END AS is_admin
             FROM team`);
         return stmt.all(userId);
     },
