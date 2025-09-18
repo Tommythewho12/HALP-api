@@ -295,10 +295,10 @@ const dbServices = {
     // this excludes events already volunteered for
     getEventsBySubscriberIdAsSubscriber: (userId) => {
         const stmt = db.prepare(`
-            SELECT 
+            SELECT
                 e.*
-            FROM event e 
-            INNER JOIN userXteam uxt 
+            FROM event e
+            INNER JOIN userXteam uxt
                 ON e.team_id=uxt.team_id
             LEFT JOIN userXevent uxe
                 ON e.id = uxe.event_id
@@ -307,6 +307,25 @@ const dbServices = {
                 uxt.user_id = ?
                     AND uxe.event_id IS NULL`);
         return stmt.all(userId);
+    },
+
+    // this includes all managed events and events from subscribed teams
+    getEventsForUser: (userId) => {
+        const stmt = db.prepare(`
+            SELECT 
+                e.*
+            FROM event e
+            LEFT JOIN userXevent uxe
+                ON e.id = uxe.event_id
+            LEFT JOIN userXteam uxt
+                ON e.team_id = uxt.team_id
+            LEFT JOIN team t
+                ON e.team_id = t.id
+            WHERE 
+                uxe.user_id = @userId OR
+                uxt.user_id = @userId OR
+                t.admin_id = @userId`);
+        return stmt.all({ userId });
     },
 
     createUserXEvent: (userId, eventId) => {

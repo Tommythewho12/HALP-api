@@ -23,7 +23,9 @@ router.get('/', (req, res) => {
             res.status(200).json(events);
             break;
         default:
-            console.warn('unknown query parameter');
+            events = dbService.getEventsForUser(req.body.userId);
+            res.status(200).json(events);
+            break;
     }
 });
 
