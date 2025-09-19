@@ -303,7 +303,7 @@ const dbServices = {
             LEFT JOIN userXevent uxe
                 ON e.id = uxe.event_id
                     AND uxe.user_id = uxt.user_id
-            WHERE 
+            WHERE
                 uxt.user_id = ?
                     AND uxe.event_id IS NULL`);
         return stmt.all(userId);
