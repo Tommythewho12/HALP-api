@@ -52,8 +52,8 @@ router.get('/', (req, res) => {
 // figure out whether user is admin of group
 router.use('/:teamId', (req, _res, next) => {
     const adminId = dbService.getTeamAdminId(req.params.teamId);
-    console.debug(`adminId: ${adminId}; userId: ${req.body.userId}`);
     req.body.isUserAdmin = req.body.userId === adminId;
+    console.debug(`adminId: ${adminId}; userId: ${req.body.userId}; equal? `, req.body.isUserAdmin);
     // TODO necessary?
     next();
 });
@@ -91,7 +91,7 @@ router.get('/:teamId', (req, res) => {
     // TODO replace with single sql command
     const team = dbService.getTeamById(req.body.userId, req.params.teamId);
     team.isUserAdmin = req.body.isUserAdmin;
-    if (req.body.isUserAdmin) {
+    if (team.isUserAdmin) {
         console.debug('user is admin');
         team.subscribers = dbService.getUserXTeamByTeamId(req.params.teamId);
     } else {
@@ -110,7 +110,7 @@ const checkIfAdmin = (req, res, next) => {
     //   return;
     // }
 
-    if (req.params.isUserAdmin) {
+    if (req.body.isUserAdmin) {
         next();
         return;
     }
