@@ -183,7 +183,7 @@ const dbServices = {
     },
 
     createEvent: (teamId, eventName, description, dateTime, jobTypes) => {
-        const stmt_event = db.prepare(`INSERT INTO event (name, description, start_datetime, team_id) VALUES (?, ?, ?, ?)`);
+        const stmt_event = db.prepare(`INSERT INTO event (name, description, start_datetime, team_id, complete) VALUES (?, ?, ?, ?, 0)`);
         const eventId = stmt_event.run(eventName, description, dateTime, teamId).lastInsertRowid;
         const stmt_job = db.prepare(`INSERT INTO job (type, event_id) VALUES (UPPER(?), ?)`);
         for (let jobType in jobTypes) {
@@ -200,24 +200,27 @@ const dbServices = {
     },
 
     getEventById: (eventId) => {
-        const stmt = db.prepare(`SELECT * FROM event WHERE id=?`);
+        const stmt = db.prepare(`
+            SELECT *
+            FROM event
+            WHERE id = ?`);
         return stmt.get(eventId);
     },
 
     getEnrichedEventByIdAndUserId: (eventId, userId) => {
         const stmt = db.prepare(`
-      SELECT 
-        e.*,
-        CASE WHEN uxe.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_subscribed,
-        CASE WHEN j.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_assigned
-      FROM event e 
-      INNER JOIN userXteam uxt 
-        ON e.team_id=uxt.team_id
-      LEFT JOIN userXevent uxe
-        ON e.id = uxe.event_id AND uxe.user_id = uxt.user_id
-      LEFT JOIN job j
-        ON e.id = j.event_id AND j.user_id = uxt.user_id
-      WHERE e.id = ? AND uxt.user_id = ?`);
+        SELECT 
+            e.*,
+            CASE WHEN uxe.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_subscribed,
+            CASE WHEN j.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_assigned
+        FROM event e 
+        INNER JOIN userXteam uxt 
+            ON e.team_id=uxt.team_id
+        LEFT JOIN userXevent uxe
+            ON e.id = uxe.event_id AND uxe.user_id = uxt.user_id
+        LEFT JOIN job j
+            ON e.id = j.event_id AND j.user_id = uxt.user_id
+        WHERE e.id = ? AND uxt.user_id = ?`);
         return stmt.get(eventId, userId);
     },
 
@@ -339,7 +342,14 @@ const dbServices = {
     },
 
     getUserXEventsByEventId: (eventId) => {
-        const stmt = db.prepare(`SELECT u.id, u.display_name FROM userXevent uxe JOIN user u ON u.id=uxe.user_id WHERE uxe.event_id=?`);
+        const stmt = db.prepare(`
+            SELECT
+                u.id,
+                u.display_name
+            FROM userXevent uxe
+            JOIN user u
+                ON u.id=uxe.user_id
+            WHERE uxe.event_id = ?`);
         return stmt.all(eventId);
     },
 
@@ -359,7 +369,13 @@ const dbServices = {
     },
 
     getJobsByEventId: (eventId) => {
-        const stmt = db.prepare(`SELECT j.id, j.type, u.id as helperId, u.display_name as helper FROM job j LEFT JOIN user u ON u.id=j.user_id WHERE j.event_id=?`);
+        const stmt = db.prepare(`
+            SELECT
+                j.id,
+                j.type,
+                j.user_id
+            FROM job j
+            WHERE j.event_id = ?`);
         return stmt.all(eventId);
     },
 
