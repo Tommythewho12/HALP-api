@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS job (
     event_id INTEGER NOT NULL,
     type TEXT NOT NULL,
     user_id INTEGER,
+    UNIQUE(event_id, user_id),
     FOREIGN KEY(event_id)
         REFERENCES event(id)
             ON UPDATE CASCADE

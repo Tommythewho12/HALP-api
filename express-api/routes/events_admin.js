@@ -89,7 +89,7 @@ router.delete('/:eventId/jobs/:jobId', (req, res) => {
 // assign/unassign user to job
 router.patch('/:eventId/jobs/:jobId', (req, res) => {
     // when adding check first if user is volunteering for event
-    if (req.body.volunteerId !== undefined) {
+    if (req.body.volunteerId !== undefined && req.body.volunteerId !== null) {
         const isVolunteering = dbService.getUserXEventsByUserIdAndEventId(req.body.volunteerId, req.params.eventId);
         if (!isVolunteering) {
             console.info("PATCH:/teams/:teamId/events/:eventId/jobs/:jobId - trying to assign user that does not volunteer to job");
@@ -99,12 +99,16 @@ router.patch('/:eventId/jobs/:jobId', (req, res) => {
     }
 
     // then add volunteer to job
-    const changedRows = dbService.updateJobHelper(req.params.jobId, req.params.eventId, req.body.volunteerId);
-    if (changedRows === 0) {
-        // TODO: fix - does not catch idempotent "changes"
-        console.warn("PUT:/auth/teams/:teamId/events/:eventId/jobs/:jobId - no changes performed");
+    try {
+        dbService.updateJobHelper(req.params.jobId, req.params.eventId, req.body.volunteerId);
+        if (req.body.volunteerId)
+            res.status(200).send("volunteer assigned to job");
+        else
+            res.status(200).send("volunteer unassigned from job");
+    } catch (err) {
+        console.error(err);
+        res.status(400).send("trying to assign single volunteer to multiple jobs");
     }
-    res.status(200).send("helper un-/assigned");
 });
 
 export default router;
