@@ -125,6 +125,7 @@ router.post("/refresh-token", (req, res) => {
 
         let userId;
         try {
+            // TODO add check whether jwt.verify returns null?
             userId = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET).id;
         } catch (err) {
             console.warn("trying to refresh acces token with invalid refresh token");

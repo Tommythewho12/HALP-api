@@ -17,22 +17,27 @@ router.use('/', (req, res, next) => {
     let errorMessage = "";
     // check access token
     const authorizationHeader = req.headers["authorization"];
-    if (req.cookies.refreshToken && authorizationHeader && authorizationHeader.split(" ")[1]) {
+
+    if (authorizationHeader && authorizationHeader.split(" ")[1]) {
         const accessToken = authorizationHeader.split(" ")[1];
-        const id = jwt.verify(accessToken, ACCESS_TOKEN_SECRET).id;
-        if (id) {
-            req.body.userId = id;
-            next();
-            return; // TODO: check if cleaner way exists
-        } else {
-            console.info("Access denied: invalid access token");
-            errorMessage = "your session has expired. you must log in again";
+        try {
+            const verified = jwt.verify(accessToken, ACCESS_TOKEN_SECRET);
+            if (verified && verified.id) {
+                req.body.userId = verified.id;
+                next();
+                return; // TODO: check if cleaner way exists
+            } else {
+                console.info("Access denied: invalid access token");
+                errorMessage = "your session has expired. you must log in again";
+            }
+        } catch (error) {
+            console.error("problem verifying jwt token ", error);
         }
     } else {
-        console.info("Access denied: missing refresh and/or access token");
+        console.info("Access denied: missing access token");
         errorMessage = "you must first log in in order to access this resource"
     }
-    res.status(403).send(errorMessage);
+    res.status(401).send(errorMessage);
 });
 
 router.patch("/change-password", (req, res) => {

@@ -61,7 +61,6 @@ router.get('/:eventId', (req, res) => {
     const volunteers = dbService.getUserXEventsByEventId(req.params.eventId);
     const jobs = dbService.getJobsByEventId(req.params.eventId);
 
-    console.debug('###', event);
     res.status(200).json({ ...event, volunteers, jobs });
 });
 

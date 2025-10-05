@@ -18,6 +18,8 @@ app.use(cookieParser());
 
 app.use((req, res, next) => {
     console.debug(`Incoming Request: ${req.method} ${req.originalUrl}`);
+    console.debug(`Incoming Body: `, req.body);
+    console.debug(`Incoming auth header`, req.headers["authorization"])
 
     const originalSend = res.send;
     res.send = function (body) {
