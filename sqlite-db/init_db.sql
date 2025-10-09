@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS event (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT,
-    start_datetime TEXT NOT NULL,
+    start_datetime INTEGER NOT NULL,
     team_id INTEGER NOT NULL,
     complete INTEGER DEFAULT 0,
     FOREIGN KEY (team_id)

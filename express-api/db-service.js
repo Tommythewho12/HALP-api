@@ -296,7 +296,7 @@ const dbServices = {
     },
 
     // this excludes events already volunteered for
-    getEventsBySubscriberIdAsSubscriber: (userId) => {
+    getEventsBySubscriberIdAsSubscriberOnly: (userId) => {
         const stmt = db.prepare(`
             SELECT
                 e.*
@@ -309,6 +309,24 @@ const dbServices = {
             WHERE
                 uxt.user_id = ?
                     AND uxe.event_id IS NULL`);
+        return stmt.all(userId);
+    },
+
+    getEventsBySubscriberIdAsSubscriber: (userId) => {
+        const stmt = db.prepare(`
+            SELECT
+                e.*,
+                CASE WHEN uxe.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_subscribed,
+                CASE WHEN j.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_assigned
+            FROM event e
+            INNER JOIN userXteam uxt
+                ON e.team_id=uxt.team_id
+            LEFT JOIN userXevent uxe
+                ON e.id = uxe.event_id AND uxe.user_id = uxt.user_id
+            LEFT JOIN job j
+                ON e.id = j.event_id AND j.user_id = uxt.user_id
+            WHERE
+                uxt.user_id = ?`);
         return stmt.all(userId);
     },
 

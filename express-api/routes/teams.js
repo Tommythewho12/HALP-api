@@ -6,7 +6,11 @@ import eventsRoute from "./events_admin.js";
 const router = express.Router();
 
 router.post('/', (req, res) => {
-    const teamName = req.body.teamName ? req.body.teamName.trim() : "";
+    const teamName = req.body.teamName ? req.body.teamName.trim() : null;
+    if (teamName === null) {
+        res.status(400).send("team name must not be empty");
+        return;
+    }
     const teamNameExists = dbService.existsTeamWithName(teamName, req.body.userId);
     if (teamNameExists) {
         res.status(400).json({ error: "team name already in use" });

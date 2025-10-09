@@ -6,7 +6,12 @@ import { JOB_ENUM } from "../resources/constants.js";
 const router = express.Router({ mergeParams: true });
 
 router.post('/', (req, res) => {
-    const eventName = req.body.eventName ? req.body.eventName.trim() : '';
+    const eventName = req.body.eventName ? req.body.eventName.trim() : null;
+    if (eventName === null) {
+        res.status(400).send("event name must not be emtpy");
+        return;
+    }
+
     // TODO: validate of type time
     const dateTime = req.body.dateTime;
     const description = req.body.description ? req.body.description : '';

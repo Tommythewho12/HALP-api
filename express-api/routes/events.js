@@ -10,7 +10,7 @@ router.get('/', (req, res) => {
     // get events of teams I am subscribed to
     let events;
     switch (req.query.as) {
-        case 'volunteer':
+        case 'volunteer': // deprecated
             events = dbService.getEventsBySubscriberIdAsVolunteer(req.body.userId);
             res.status(200).json(events);
             break;
