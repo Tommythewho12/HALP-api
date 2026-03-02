@@ -43,12 +43,8 @@ router.get('/', (req, res) => {
             teams = dbService.getTeamsByAdminId(userId);
             res.status(200).json(teams);
             break;
-        case 'user':
-            teams = dbService.getEnrichedTeams(userId);
-            res.status(200).json(teams);
-            break;
         default:
-            teams = dbService.getAllTeams(userId);
+            teams = dbService.getEnrichedTeams(userId);
             res.status(200).json(teams);
     }
 });

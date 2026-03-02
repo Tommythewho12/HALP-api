@@ -76,7 +76,7 @@ const dbServices = {
     },
 
     getUserById: (userId) => {
-        const stmt = db.prepare(`SELECT * FROM user WHERE id=?`);
+        const stmt = db.prepare(`SELECT id, display_name, email FROM user WHERE id=?`);
         return stmt.get(userId);
     },
 
@@ -120,11 +120,12 @@ const dbServices = {
         const stmt = db.prepare(`
             SELECT 
                 t.*, 
-                CASE WHEN uxt.team_id IS NOT NULL THEN TRUE ELSE FALSE END AS is_subscribed 
+                CASE WHEN uxt.team_id IS NOT NULL THEN TRUE ELSE FALSE END AS is_subscribed,
+                CASE WHEN t.admin_id = @userId THEN TRUE ELSE FALSE END AS is_admin
             FROM team t 
-            LEFT JOIN (SELECT * FROM userXteam WHERE user_id=?) uxt 
+            LEFT JOIN (SELECT * FROM userXteam WHERE user_id=@userId) uxt 
                 ON t.id=uxt.team_id`);
-        return stmt.all(userId);
+        return stmt.all({ userId });
     },
 
     getTeamsByAdminId: (teamId) => {
@@ -183,6 +184,7 @@ const dbServices = {
     },
 
     createEvent: (teamId, eventName, description, dateTime, jobTypes) => {
+        // Datetime must be passed in seconds!
         const stmt_event = db.prepare(`INSERT INTO event (name, description, start_datetime, team_id, complete) VALUES (?, ?, ?, ?, 0)`);
         const eventId = stmt_event.run(eventName, description, dateTime, teamId).lastInsertRowid;
         const stmt_job = db.prepare(`INSERT INTO job (type, event_id) VALUES (UPPER(?), ?)`);

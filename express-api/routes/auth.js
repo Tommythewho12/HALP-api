@@ -6,6 +6,7 @@ const SALT = process.env.SALT | 10;
 
 import dbService from "../db-service.js";
 
+import usersRoute from "./users.js";
 import teamsRoute from "./teams.js";
 import eventsRoute from "./events.js";
 
@@ -70,6 +71,7 @@ router.get("/secureTest", (_, res) => {
     return res.status(200).send("send nudes!");
 });
 
+router.use('/user', usersRoute);
 router.use('/teams', teamsRoute);
 router.use('/events', eventsRoute);
 
