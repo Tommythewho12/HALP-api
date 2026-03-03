@@ -335,7 +335,7 @@ const dbServices = {
     // this includes all managed events and events from subscribed teams
     getEventsForUser: (userId) => {
         const stmt = db.prepare(`
-            SELECT 
+            SELECT DISTINCT
                 e.*
             FROM event e
             LEFT JOIN userXevent uxe
