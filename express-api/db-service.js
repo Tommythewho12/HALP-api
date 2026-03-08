@@ -337,21 +337,28 @@ const dbServices = {
         const stmt = db.prepare(`
             SELECT DISTINCT
                 e.*,
-                CASE WHEN uxe.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_subscribed,
-                CASE WHEN j.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_assigned
+                EXISTS (
+                    SELECT 1 FROM userXevent
+                    WHERE event_id = e.id AND user_id = @userId
+                ) is_volunteering,
+                EXISTS (
+                    SELECT 1 FROM job
+                    WHERE event_id = e.id AND user_id = @userId
+                ) AS is_assigned
             FROM event e
-            LEFT JOIN userXevent uxe
-                ON e.id = uxe.event_id
-            LEFT JOIN userXteam uxt
-                ON e.team_id = uxt.team_id
-            LEFT JOIN team t
-                ON e.team_id = t.id
-            LEFT JOIN job j
-                ON e.id = j.event_id AND j.user_id = uxt.user_id
-            WHERE 
-                uxe.user_id = @userId OR
-                uxt.user_id = @userId OR
-                t.admin_id = @userId`);
+            WHERE
+                EXISTS (
+                    SELECT 1 FROM userXevent
+                    WHERE event_id = e.id AND user_id = @userId
+                )
+                OR EXISTS (
+                    SELECT 1 FROM userXteam
+                    WHERE team_id = e.team_id AND user_id = @userId
+                )
+                OR EXISTS (
+                    SELECT 1 FROM team
+                    WHERE id = e.team_id AND admin_id = 1
+                )`);
         return stmt.all({ userId });
     },
 
