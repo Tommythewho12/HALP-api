@@ -336,7 +336,9 @@ const dbServices = {
     getEventsForUser: (userId) => {
         const stmt = db.prepare(`
             SELECT DISTINCT
-                e.*
+                e.*,
+                CASE WHEN uxe.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_subscribed,
+                CASE WHEN j.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_assigned
             FROM event e
             LEFT JOIN userXevent uxe
                 ON e.id = uxe.event_id
@@ -344,6 +346,8 @@ const dbServices = {
                 ON e.team_id = uxt.team_id
             LEFT JOIN team t
                 ON e.team_id = t.id
+            LEFT JOIN job j
+                ON e.id = j.event_id AND j.user_id = uxt.user_id
             WHERE 
                 uxe.user_id = @userId OR
                 uxt.user_id = @userId OR
@@ -407,6 +411,14 @@ const dbServices = {
             const stmt = db.prepare(`UPDATE job SET user_id=NULL WHERE id=? AND event_id=?`);
             return stmt.run(jobId, eventId).changes;
         }
+    },
+
+    isUserAssignedToJob: (eventId, userId) => {
+        const stmt = db.prepare(`
+            SELECT EXISTS (
+                SELECT 1 FROM job WHERE event_id=? AND user_id=?
+            ) AS is_assigned`);
+        return stmt.run(eventId, userId);
     }
 }
 

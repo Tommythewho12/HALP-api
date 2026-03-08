@@ -1,5 +1,4 @@
 import express from "express";
-import qs from 'qs';
 
 import dbService from "../db-service.js";
 
@@ -47,6 +46,12 @@ router.post('/:eventId/volunteers', (req, res) => {
 });
 
 router.delete('/:eventId/volunteers', (req, res) => {
+    // if user already assigned, unvolunteering not permitted
+    const isAssigned = dbService.isUserAssignedToJob(req.params.eventId, req.body.userId);
+    if (isAssigned) {
+        res.status(400).send('user is already assigned to a job within this event');
+        return;
+    }
     const deletedRows = dbService.removeUserXEvent(req.body.userId, req.params.eventId);
     if (deletedRows === 0) {
         console.warn("DELETE:/auth/events/:eventId/volunteers - user not volunteering to event");
