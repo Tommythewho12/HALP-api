@@ -62,10 +62,14 @@ router.use('/:teamId', (req, _res, next) => {
 router.post('/:teamId/subscribers', (req, res) => {
     try {
         dbService.createUserXTeam(req.body.userId, req.params.teamId);
-        res.status(200).json({ message: "subscribed to team" });
+        const resultJson = {
+            team_id: req.params.teamId,
+            user_id: req.body.userId
+        }
+        res.status(200).json(resultJson);
     } catch (err) {
         if (err.code === "SQLITE_CONSTRAINT_PRIMARYKEY") {
-            res.status(200).json({ message: "subscribed to team" });
+            res.status(200).json(resultJson);
             console.warn("user already subscribed to team");
         } else {
             res.status(500).json({ error: err });
@@ -76,10 +80,14 @@ router.post('/:teamId/subscribers', (req, res) => {
 // unsubscribe current user from team
 router.delete('/:teamId/subscribers', (req, res) => {
     const deletedRows = dbService.removeUserXTeam(req.body.userId, req.params.teamId);
+    const resultJson = {
+        team_id: req.params.teamId,
+        user_id: req.body.userId
+    }
     if (deletedRows === 0) {
         console.warn("user not subscribed to team");
     }
-    res.status(200).json({ message: "unsubscribed from team" })
+    res.status(200).json(resultJson);
 });
 
 /* ----------------------- */
