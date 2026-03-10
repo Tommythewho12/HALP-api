@@ -425,7 +425,7 @@ const dbServices = {
             SELECT EXISTS (
                 SELECT 1 FROM job WHERE event_id=? AND user_id=?
             ) AS is_assigned`);
-        return stmt.run(eventId, userId);
+        return stmt.get(eventId, userId).is_assigned;
     }
 }
 
