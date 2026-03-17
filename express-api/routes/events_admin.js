@@ -41,7 +41,9 @@ router.post('/', (req, res) => {
         description: description,
         start_datetime: dateTime,
         jobs: newJobs,
-        complete: false
+        complete: false,
+        is_volunteering: false,
+        is_assigned: false
     }
     res.status(202).json(newEvent);
 });

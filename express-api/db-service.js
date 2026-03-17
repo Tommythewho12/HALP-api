@@ -347,7 +347,7 @@ const dbServices = {
                 ) AS is_assigned
             FROM event e
             WHERE
-                EXISTS (
+                (EXISTS (
                     SELECT 1 FROM userXevent
                     WHERE event_id = e.id AND user_id = @userId
                 )
@@ -358,7 +358,8 @@ const dbServices = {
                 OR EXISTS (
                     SELECT 1 FROM team
                     WHERE id = e.team_id AND admin_id = 1
-                )`);
+                ))
+                AND start_datetime > strftime('%s','now','start of day')`);
         return stmt.all({ userId });
     },
 
