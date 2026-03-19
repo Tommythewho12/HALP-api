@@ -209,6 +209,38 @@ const dbServices = {
         return stmt.get(eventId);
     },
 
+    getEventAndAdminByEventId: (eventId, userId) => {
+        const stmt = db.prepare(`
+            SELECT
+                u.id AS admin_id, u.display_name AS admin_name, u.email AS admin_email,
+                e.id AS event_id, e.name AS event_name, e.description AS event_description, 
+                    e.start_datetime AS event_start_datetime, e.team_id AS event_team_id, 
+                    e.complete AS event_complete,
+                t.id AS team_id, t.name AS team_name, t.admin_id AS team_admin_id,
+                EXISTS (
+                    SELECT 1 FROM userXevent
+                    WHERE event_id = e.id AND user_id = @userId
+                ) is_volunteering,
+                EXISTS (
+                    SELECT 1 FROM job
+                    WHERE event_id = e.id AND user_id = @userId
+                ) AS is_assigned
+            FROM
+                user AS u
+            JOIN
+                team AS t
+            ON
+                t.admin_id = u.id
+            JOIN
+                event AS e
+            ON
+                e.team_id = t.id
+            WHERE
+                event_id = @eventId
+            `);
+        return stmt.get({ eventId, userId });
+    },
+
     getEnrichedEventByIdAndUserId: (eventId, userId) => {
         const stmt = db.prepare(`
         SELECT 
@@ -427,6 +459,24 @@ const dbServices = {
                 SELECT 1 FROM job WHERE event_id=? AND user_id=?
             ) AS is_assigned`);
         return stmt.get(eventId, userId).is_assigned;
+    },
+
+    // TODO test whether query:exists -> is_assigned is too expensive and remove
+    getJobsOfEventByEventId: (eventId) => {
+        const stmt = db.prepare(`
+                SELECT
+                    j.*,
+                    u.display_name
+                FROM
+                    job j
+                LEFT JOIN
+                    user u
+                ON
+                    u.id = j.user_id
+                WHERE
+                    j.event_id = @eventId
+            `);
+        return stmt.all({ eventId });
     }
 }
 

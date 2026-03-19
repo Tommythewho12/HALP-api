@@ -9,23 +9,48 @@ router.get('/', (req, res) => {
     // get events of teams I am subscribed to
     let events;
     switch (req.query.as) {
-        case 'volunteer': // deprecated
-            events = dbService.getEventsBySubscriberIdAsVolunteer(req.body.userId);
-            res.status(200).json(events);
-            break;
-        case 'subscriber':
-            events = dbService.getEventsBySubscriberIdAsSubscriber(req.body.userId);
-            res.status(200).json(events);
-            break;
-        case 'admin':
-            events = dbService.getEventsBySubscriberIdAsAdmin(req.body.userId);
-            res.status(200).json(events);
-            break;
+        case 'volunteer', 'subscriber', 'admin': // deprecated
+            console.warn('using deprecated query')
         default:
             events = dbService.getEventsForUser(req.body.userId);
             res.status(200).json(events);
             break;
     }
+});
+
+router.get('/:eventId', (req, res) => {
+    const entity = dbService.getEventAndAdminByEventId(req.params.eventId, req.body.userId);
+    const jobs = dbService.getJobsOfEventByEventId(req.params.eventId);
+    const isAssigned = entity.is_assigned;
+    const result = {
+        admin: {
+            id: entity.admin_id,
+            display_name: entity.admin_name,
+            email: entity.admin_email
+        },
+        team: {
+            id: entity.team_id,
+            name: entity.team_name,
+            amdin_id: entity.team_admin_id
+        },
+        event: {
+            id: entity.admin_id,
+            name: entity.admin_name,
+            description: entity.event_description,
+            start_datetime: entity.event_start_datetime,
+            team_id: entity.event_team_id,
+            complete: entity.event_complete,
+            is_volunteering: entity.is_volunteering,
+            is_assigned: isAssigned
+        },
+        jobs: jobs.map(j => ({
+            id: j.id,
+            type: j.type,
+            assignee_id: j.user_id,
+            assignee_name: isAssigned ? j.display_name : ''
+        }))
+    }
+    res.status(200).json(result);
 });
 
 // volunteer for event
