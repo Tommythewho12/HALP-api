@@ -3,9 +3,12 @@
   "version": "0.1.0",
   "description": "",
   "private": true,
-  "main": "app.js",
+  "main": "src/server.ts",
   "scripts": {
-    "start": "node app.js"
+    "build": "tsc",
+    "type-check": "tsc --no-emit",
+    "dev": "tsx --watch --env-file .env src/server.ts",
+    "start": "node --env-file .env dist/server.js"
   },
   "keywords": [],
   "author": "Tommy",
@@ -15,8 +18,18 @@
     "bcrypt": "^5.1.1",
     "better-sqlite3": "^11.9.1",
     "cookie-parser": "^1.4.7",
+    "dotenv": "^17.3.1",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
-    "nodemailer": "^6.10.1"
+    "nodemailer": "^6.10.1",
+    "tsx": "^4.21.0"
+  },
+  "devDependencies": {
+    "@tsconfig/node22": "^22.0.5",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.5.0",
+    "openapi-typescript": "^6.7.6",
+    "typescript": "^5.9.2"
   }
 }

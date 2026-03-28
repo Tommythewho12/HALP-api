@@ -389,7 +389,7 @@ const dbServices = {
                 )
                 OR EXISTS (
                     SELECT 1 FROM team
-                    WHERE id = e.team_id AND admin_id = 1
+                    WHERE id = e.team_id AND admin_id = @userId
                 ))
                 AND start_datetime > strftime('%s','now','start of day')`);
         return stmt.all({ userId });
