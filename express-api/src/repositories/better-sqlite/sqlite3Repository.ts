@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import SqliteDb, { type Database } from 'better-sqlite3';
-import { getSingleResult } from '../db-utils.js';
+import { getSingleResult, getListResult } from '../db-utils.js';
 
 // TODO: move path to .env
 const SQLITE_PATH = 'dist/db';
@@ -17,7 +17,7 @@ const EXPECTED_TABLES = [
 ];
 
 const isDatabaseValid = (sqliteDb: Database) => {
-    const tables = sqliteDb.prepare(`SELECT name FROM sqlite_master WHERE type='table'`).all() as string[];
+    const tables = getListResult<string>(sqliteDb.prepare(`SELECT name as res FROM sqlite_master WHERE type='table'`).all());
 
     for (let table of tables) {
         if (!EXPECTED_TABLES.includes(table)) {
