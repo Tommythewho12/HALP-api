@@ -7,13 +7,13 @@ import { getSingleResult, getListResult } from '../db-utils.js';
 const SQLITE_PATH = 'dist/db';
 const INIT_SQL_PATH = '../../resources/db/init_db.sql';
 const EXPECTED_TABLES = [
-    'user',
-    'auth',
-    'team',
-    'userXteam',
-    'event',
-    'userXevent',
-    'job'
+    "user",
+    "team",
+    "userXteam",
+    "event",
+    "userXevent",
+    "job",
+    "auth"
 ];
 
 const isDatabaseValid = (sqliteDb: Database) => {
