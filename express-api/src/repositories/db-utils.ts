@@ -2,6 +2,7 @@ type SingleResult<T extends (string | number)> = {
     res: T
 }
 
+// TODO unused: remove
 export function isSqliteError(error: unknown): error is { code?: string; message: string } {
     return typeof error === 'object' && error !== null && 'code' in error;
 }

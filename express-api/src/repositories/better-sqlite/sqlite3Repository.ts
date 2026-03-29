@@ -1,25 +1,26 @@
-import fs from "node:fs";
-import path from "node:path";
-import SqliteDb, { type Database, type SqliteError } from "better-sqlite3";
-import { getSingleResult } from "../db-utils.js";
+import fs from 'node:fs';
+import path from 'node:path';
+import SqliteDb, { type Database } from 'better-sqlite3';
+import { getSingleResult } from '../db-utils.js';
 
 // TODO: move path to .env
-const SQLITE_PATH = "../sqlite-db/halp.db";
-const INIT_SQL_PATH = "../sqlite-db/init_db.sql";
+const SQLITE_PATH = 'dist/db';
+const INIT_SQL_PATH = '../../resources/db/init_db.sql';
 const EXPECTED_TABLES = [
-    "user",
-    "team",
-    "userXteam",
-    "event",
-    "userXevent",
-    "job",
+    'user',
+    'auth',
+    'team',
+    'userXteam',
+    'event',
+    'userXevent',
+    'job'
 ];
 
 const isDatabaseValid = (sqliteDb: Database) => {
-    const tables = sqliteDb.prepare(`SELECT name FROM sqlite_master WHERE type='table'`).all();
+    const tables = sqliteDb.prepare(`SELECT name FROM sqlite_master WHERE type='table'`).all() as string[];
 
     for (let table of tables) {
-        if (!EXPECTED_TABLES.includes(table.name)) {
+        if (!EXPECTED_TABLES.includes(table)) {
             return false;
         }
     }
@@ -27,49 +28,53 @@ const isDatabaseValid = (sqliteDb: Database) => {
 };
 
 const databaseInit = (sqliteDb: Database) => {
-    console.info("initializing database");
-    const dbInitScript = fs.readFileSync(path.join(import.meta.dirname, INIT_SQL_PATH), "utf8");
+    console.info('initializing database');
+    const dbInitScript = fs.readFileSync(path.join(import.meta.dirname, INIT_SQL_PATH), 'utf8');
     sqliteDb.exec(dbInitScript);
 };
 
-const db = new SqliteDb(SQLITE_PATH);
-console.info("connected to database: ", SQLITE_PATH);
+if (!fs.existsSync(SQLITE_PATH)) {
+    console.info('creating directory ' + SQLITE_PATH);
+    fs.mkdirSync(SQLITE_PATH, { recursive: true });
+}
+const db = new SqliteDb(SQLITE_PATH + '/halp.db');
+console.info('connected to database: ', SQLITE_PATH);
 db.pragma('journal_mode = WAL');
 
 if (!isDatabaseValid(db)) {
     databaseInit(db);
 }
 
-type XX = { password: string };
-
 const dbServices = {
     createUser: (displayName: string, email: string, password: string) => {
-        const stmt = db.prepare(`INSERT INTO user (display_name, email, password) VALUES (?, ?, ?)`);
-        return stmt.run(displayName, email, password).lastInsertRowid;
+        const stmt = db.prepare(`INSERT INTO user (display_name, email) VALUES (?, ?)`);
+        const userId = stmt.run(displayName, email).lastInsertRowid;
+        db.prepare(`INSERT INTO auth (id, password) VALUES (?, ?)`).run(userId, password);
+        return userId;
     },
 
     updateUserRefreshToken: (userId: number, refreshToken: string) => {
-        const stmt = db.prepare(`UPDATE user SET refresh_token=? WHERE id=?`);
+        const stmt = db.prepare(`UPDATE auth SET refresh_token=? WHERE id=?`);
         return stmt.run(refreshToken, userId);
     },
 
     clearUserRefreshToken: (email: string) => {
-        const stmt = db.prepare(`UPDATE user SET refresh_token=NULL WHERE email=?`);
+        const stmt = db.prepare(`UPDATE auth SET refresh_token=NULL WHERE email=?`);
         return stmt.run(email);
     },
 
     getUserRefreshTokenByUserId: (userId: number) => {
-        const stmt = db.prepare(`SELECT refresh_token AS res FROM user WHERE id=?`);
+        const stmt = db.prepare(`SELECT refresh_token AS res FROM auth WHERE id=?`);
         return getSingleResult<string>(stmt.get(userId));
     },
 
     resetUserPassword: (email: string, password: string) => {
-        const stmt = db.prepare(`UPDATE user SET password=? WHERE email=?`);
+        const stmt = db.prepare(`UPDATE auth SET password=? WHERE id=(SELECT id FROM user WHERE email=?)`);
         return stmt.run(password, email).changes;
     },
 
     updateUserPassword: (userId: number, newPassword: string) => {
-        const stmt = db.prepare(`UPDATE user SET password=? WHERE id=?`);
+        const stmt = db.prepare(`UPDATE auth SET password=? WHERE id=?`);
         return stmt.run(newPassword, userId).changes;
     },
 
@@ -84,13 +89,19 @@ const dbServices = {
     },
 
     getUserPasswordHashById: (userId: number) => {
-        const stmt = db.prepare(`SELECT password AS res FROM user WHERE id=?`);
+        const stmt = db.prepare(`SELECT password AS res FROM auth WHERE id=?`);
         return getSingleResult<string>(stmt.get(userId));
     },
 
+    // TODO unused? delete
     getUserByEmail: (email: string) => {
         const stmt = db.prepare(`SELECT * FROM user WHERE email=?`);
         return stmt.get(email);
+    },
+
+    getUserIdAndPasswordByEmail: (email: string) => {
+        const stmt = db.prepare(`SELECT id, password FROM auth WHERE id=(SELECT id FROM user WHERE email=? LIMIT 1)`);
+        return stmt.get(email) as { id: number, password: string };
     },
 
     createTeam: (teamName: string, adminId: number) => {
@@ -483,7 +494,7 @@ const dbServices = {
 
 export default dbServices;
 
-process.on("exit", () => {
-    console.info("closing connection to database");
+process.on('exit', () => {
+    console.info('closing connection to database');
     db.close();
 });

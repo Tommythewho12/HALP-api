@@ -1,7 +1,8 @@
-import express from "express";
+import express from 'express';
+import { SqliteError } from 'better-sqlite3';
 
-import dbService from "../repositories/better-sqlite/sqlite3Repository.js";
-import eventsRoute from "./events_admin.js";
+import dbService from '../repositories/better-sqlite/sqlite3Repository.js';
+import eventsRoute from './events_admin.js';
 
 const router = express.Router();
 
@@ -27,13 +28,13 @@ router.post('/', (req, res) => {
                 case 'SQLITE_CONSTRAINT_CHECK':
                 case 'SQLITE_CONSTRAINT_NOTNULL':
                     // TODO return JSON
-                    return res.status(400).send("name cannot be blank");
+                    return res.status(400).send('name cannot be blank');
                 case 'SQLITE_CONSTRAINT_UNIQUE':
-                    if (error.message.includes("name")) {
-                        console.warn("User creation failed: displayName [" + displayName + "] already in use");
+                    if (error.message.includes('name')) {
+                        console.warn('User creation failed: displayName [' + displayName + '] already in use');
                     }
                     // TODO return JSON
-                    return res.status(400).send("name already in use. Please use different value");
+                    return res.status(400).send('name already in use. Please use different value');
                 default:
                     console.error('database error while creating user');
             }
@@ -83,9 +84,9 @@ router.post('/:teamId/subscribers', (req, res) => {
         }
         res.status(200).json(resultJson);
     } catch (err) {
-        if (err.code === "SQLITE_CONSTRAINT_PRIMARYKEY") {
+        if (err.code === 'SQLITE_CONSTRAINT_PRIMARYKEY') {
             res.status(200).json(resultJson);
-            console.warn("user already subscribed to team");
+            console.warn('user already subscribed to team');
         } else {
             res.status(500).json({ error: err });
         }
@@ -100,7 +101,7 @@ router.delete('/:teamId/subscribers', (req, res) => {
         user_id: req.body.userId
     }
     if (deletedRows === 0) {
-        console.warn("user not subscribed to team");
+        console.warn('user not subscribed to team');
     }
     res.status(200).json(resultJson);
 });
@@ -129,7 +130,7 @@ router.get('/:teamId', (req, res) => {
 
 const checkIfAdmin = (req, res, next) => {
     // if (adminId === -1) {
-    //   res.status(404).send("team does not exist");
+    //   res.status(404).send('team does not exist');
     //   return;
     // }
 
@@ -137,19 +138,19 @@ const checkIfAdmin = (req, res, next) => {
         next();
         return;
     }
-    console.warn("trying to execute priviledged actions on team without proper authorization");
-    res.status(403).send("no permissions for this action");
+    console.warn('trying to execute priviledged actions on team without proper authorization');
+    res.status(403).send('no permissions for this action');
 };
 
 // TODO: check efficiency of double getTeamById call
-router.use("/:teamId", checkIfAdmin);
+router.use('/:teamId', checkIfAdmin);
 
 router.delete('/:teamId', (req, res) => {
     const deletedRows = dbService.removeTeam(req.params.teamId);
     if (deletedRows === 0) {
-        console.error("cannot delete team because not exists; should not enter this code");
+        console.error('cannot delete team because not exists; should not enter this code');
     }
-    res.status(200).send("team deleted");
+    res.status(200).send('team deleted');
 });
 
 router.use('/:teamId/events', eventsRoute);
