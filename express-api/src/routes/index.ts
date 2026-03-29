@@ -97,11 +97,11 @@ router.post('/login', (req, res) => {
         return;
     }
 
-    const user = dbService.getUserByEmail(email);
+    const result = dbService.getUserIdAndPasswordByEmail(email);
 
-    if (user && bcrypt.compareSync(password, user.password)) {
-        const accessToken = createAccessToken(user.id);
-        const refreshToken = createRefreshToken(user.id);
+    if (result && bcrypt.compareSync(password, result.password)) {
+        const accessToken = createAccessToken(result.id);
+        const refreshToken = createRefreshToken(result.id);
 
         res
             .status(200)

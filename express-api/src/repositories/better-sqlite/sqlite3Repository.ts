@@ -13,6 +13,7 @@ const EXPECTED_TABLES = [
     "event",
     "userXevent",
     "job",
+    "auth"
 ];
 
 const isDatabaseValid = (sqliteDb: Database) => {
@@ -40,36 +41,36 @@ if (!isDatabaseValid(db)) {
     databaseInit(db);
 }
 
-type XX = { password: string };
-
 const dbServices = {
     createUser: (displayName: string, email: string, password: string) => {
-        const stmt = db.prepare(`INSERT INTO user (display_name, email, password) VALUES (?, ?, ?)`);
-        return stmt.run(displayName, email, password).lastInsertRowid;
+        const stmt = db.prepare(`INSERT INTO user (display_name, email) VALUES (?, ?)`);
+        const userId = stmt.run(displayName, email).lastInsertRowid;
+        db.prepare(`INSERT INTO auth (id, password) VALUES (?, ?)`).run(userId, password);
+        return userId;
     },
 
     updateUserRefreshToken: (userId: number, refreshToken: string) => {
-        const stmt = db.prepare(`UPDATE user SET refresh_token=? WHERE id=?`);
+        const stmt = db.prepare(`UPDATE auth SET refresh_token=? WHERE id=?`);
         return stmt.run(refreshToken, userId);
     },
 
     clearUserRefreshToken: (email: string) => {
-        const stmt = db.prepare(`UPDATE user SET refresh_token=NULL WHERE email=?`);
+        const stmt = db.prepare(`UPDATE auth SET refresh_token=NULL WHERE email=?`);
         return stmt.run(email);
     },
 
     getUserRefreshTokenByUserId: (userId: number) => {
-        const stmt = db.prepare(`SELECT refresh_token AS res FROM user WHERE id=?`);
+        const stmt = db.prepare(`SELECT refresh_token AS res FROM auth WHERE id=?`);
         return getSingleResult<string>(stmt.get(userId));
     },
 
     resetUserPassword: (email: string, password: string) => {
-        const stmt = db.prepare(`UPDATE user SET password=? WHERE email=?`);
+        const stmt = db.prepare(`UPDATE auth SET password=? WHERE id=(SELECT id FROM user WHERE email=?)`);
         return stmt.run(password, email).changes;
     },
 
     updateUserPassword: (userId: number, newPassword: string) => {
-        const stmt = db.prepare(`UPDATE user SET password=? WHERE id=?`);
+        const stmt = db.prepare(`UPDATE auth SET password=? WHERE id=?`);
         return stmt.run(newPassword, userId).changes;
     },
 
@@ -84,12 +85,18 @@ const dbServices = {
     },
 
     getUserPasswordHashById: (userId: number) => {
-        const stmt = db.prepare(`SELECT password AS res FROM user WHERE id=?`);
+        const stmt = db.prepare(`SELECT password AS res FROM auth WHERE id=?`);
         return getSingleResult<string>(stmt.get(userId));
     },
 
+    // TODO unused? delete
     getUserByEmail: (email: string) => {
         const stmt = db.prepare(`SELECT * FROM user WHERE email=?`);
+        return stmt.get(email);
+    },
+
+    getUserIdAndPasswordByEmail: (email: string) => {
+        const stmt = db.prepare(`SELECT id, password FROM auth WHERE id=(SELECT id FROM user WHERE email=? LIMIT 1)`);
         return stmt.get(email);
     },
 
