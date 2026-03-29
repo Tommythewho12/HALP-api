@@ -1,6 +1,6 @@
 import express from 'express';
 
-import dbService from '../db-service.js';
+import dbService from '../repositories/better-sqlite/sqlite3Repository';
 
 const router = express.Router();
 

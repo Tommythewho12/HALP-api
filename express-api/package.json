@@ -26,8 +26,11 @@
   },
   "devDependencies": {
     "@tsconfig/node22": "^22.0.5",
+    "@types/bcrypt": "^6.0.0",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.5.0",
     "openapi-typescript": "^6.7.6",
     "typescript": "^5.9.2"

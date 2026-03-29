@@ -1,21 +1,23 @@
 import express from "express";
+import 'dotenv/config';
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt"; // TODO: check alternatives; npm marks deprecated
+import { SqliteError } from "better-sqlite3";
 
-import dbService from "../db-service.js";
-import emailService from "../email-service.js";
+import dbService from "../repositories/better-sqlite/sqlite3Repository.js";
+import emailService from "../services/email-service.js";
 
-const SALT = process.env.SALT | 10;
+const SALT = Number(process.env.SALT) || 10;
 const ACCESS_TOKEN_SECRET = 'this-is-my-super-secret-secret-that-noone-will-ever-find-out';
 const REFRESH_TOKEN_SECRET = 'this-is-my-not-so-super-secret-secret-that-noone-will-ever-find-out';
 
-const createAccessToken = (id) => {
+const createAccessToken = (id: string) => {
     return jwt.sign({ id }, ACCESS_TOKEN_SECRET, {
         expiresIn: 5 * 60,
     });
 };
 
-const createRefreshToken = (id) => {
+const createRefreshToken = (id: string) => {
     const refreshToken = jwt.sign({ id }, REFRESH_TOKEN_SECRET, {
         expiresIn: "90d",
     });
@@ -23,7 +25,7 @@ const createRefreshToken = (id) => {
     return refreshToken;
 };
 
-const generateRandomPassword = (length) => {
+const generateRandomPassword = (length: number) => {
     let result = '';
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     const charactersLength = characters.length;
@@ -40,42 +42,48 @@ const router = express.Router({ mergeParams: true });
 
 router.post('/signup', (req, res) => {
     // TODO set random password first and force user to change on first login
-    const displayName = req.body.displayName ? req.body.displayName.trim() : "";
-    const email = req.body.email ? req.body.email.trim() : "";
-    const password = req.body.password ? req.body.password : "";
-
-    if (displayName === "" || email === "" || password === "") {
-        console.info("Sign up failed: undefinded or empty displayName [" + displayName + "], email [" + email + "], and/or password [" + password + "]");
-        res.status(400).send("name, email, and password cannot be blank");
-        return;
-    }
+    // TODO research why const displayName = req.body.displayName?.trim() ?? null; does not evaluate to null if ''
+    const displayName = req.body.displayName ? req.body.displayName.trim() : null;
+    const email = req.body.email ? req.body.email.trim() : null;
+    const password = req.body.password ?? null;
     // TODO: add password requirements also in /auth/change-password
 
     const passwordHash = bcrypt.hashSync(password, SALT);
     try {
         const userId = dbService.createUser(displayName, email, passwordHash);
-        res.status(202).send("User successfully created");
         console.info("User created: displayName [" + displayName + "], email [" + email + "]");
-    } catch (err) {
-        if (err.code === "SQLITE_CONSTRAINT_CHECK") {
-            res.status(400).send("name, email, and password cannot be blank");
-        }
-        else if (err.code === "SQLITE_CONSTRAINT_UNIQUE") {
-            let duplicateValue = "unknown value";
-            if (err.message.includes("name")) {
-                duplicateValue = "name";
-                console.warn("User creation failed: displayName [" + displayName + "] already in use");
+        // TODO return json object
+        return res.status(202).send("User successfully created");
+    } catch (error) {
+        // example for sqlite error handling
+        if (error instanceof SqliteError) {
+            // TODO extrapolate for other cases as well
+            let invalidValue = "unknown value";
+            let value = "";
+            if (error.message.includes("name")) {
+                invalidValue = "name";
+                value = displayName;
+            } else if (error.message.includes("email")) {
+                invalidValue = "email";
+                value = email;
+            } else if (error.message.includes('password')) {
+                invalidValue = "password";
             }
-            if (err.message.includes("email")) {
-                duplicateValue = "email";
-                console.warn("User creation failed: email [" + email + "] already in use");
+            switch (error.code) {
+                case 'SQLITE_CONSTRAINT_CHECK':
+                case 'SQLITE_CONSTRAINT_NOTNULL':
+                    console.warn("User creation failed: '" + invalidValue + "' is blank\n", error);
+                    return res.status(400).send("name, email, and password cannot be blank");
+                case 'SQLITE_CONSTRAINT_UNIQUE':
+                    console.warn("User creation failed: '" + invalidValue + "' [" + value + "] already in use\n", error);
+                    return res.status(400).send(invalidValue + " already in use. Please use different value");
+                default:
+                    console.error('database error while creating user', error);
             }
-            res.status(400).send(duplicateValue + " already in use. Please use different value");
-        } else {
-            // TODO: insert default err message
-            res.status(500).send("something went wrong");
-            console.error(err);
         }
+        console.error('unknown error while accessing database', error);
+        // TODO make JSON everywhere
+        return res.status(500).send('server error');
     }
 });
 

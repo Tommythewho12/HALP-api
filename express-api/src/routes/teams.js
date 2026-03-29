@@ -1,33 +1,47 @@
 import express from "express";
 
-import dbService from "../db-service.js";
+import dbService from "../repositories/better-sqlite/sqlite3Repository.js";
 import eventsRoute from "./events_admin.js";
 
 const router = express.Router();
 
 router.post('/', (req, res) => {
     const teamName = req.body.teamName ? req.body.teamName.trim() : null;
-    if (teamName === null) {
-        res.status(400).send("team name must not be empty");
-        return;
+
+    try {
+        const newTeamId = dbService.createTeam(teamName, req.body.userId);
+
+        let newTeam = {
+            id: newTeamId,
+            name: teamName,
+            adminId: req.body.userId,
+            subscriberIds: [],
+            eventIds: {}
+        };
+        // TODO return JSON
+        return res.status(202).json(newTeam);
+    } catch (error) {
+        if (error instanceof SqliteError) {
+            // TODO extrapolate for other cases as well
+            switch (error.code) {
+                case 'SQLITE_CONSTRAINT_CHECK':
+                case 'SQLITE_CONSTRAINT_NOTNULL':
+                    // TODO return JSON
+                    return res.status(400).send("name cannot be blank");
+                case 'SQLITE_CONSTRAINT_UNIQUE':
+                    if (error.message.includes("name")) {
+                        console.warn("User creation failed: displayName [" + displayName + "] already in use");
+                    }
+                    // TODO return JSON
+                    return res.status(400).send("name already in use. Please use different value");
+                default:
+                    console.error('database error while creating user');
+            }
+        }
+        console.error('unknown error while accessing database', error);
+        // TODO make JSON everywhere
+        return res.status(500).send('server error');
     }
-    const teamNameExists = dbService.existsTeamWithName(teamName, req.body.userId);
-    if (teamNameExists) {
-        res.status(400).json({ error: "team name already in use" });
-        return;
-    }
-
-    const newTeamId = dbService.createTeam(teamName, req.body.userId);
-
-    let newTeam = {
-        id: newTeamId,
-        name: teamName,
-        adminId: req.body.userId,
-        subscriberIds: [],
-        eventIds: {}
-    };
-
-    res.status(202).json(newTeam);
 });
 
 /* --------------------- */
@@ -40,6 +54,7 @@ router.get('/', (req, res) => {
     let teams;
     switch (req.query.as) {
         case 'admin':
+            // TODO unused: remove
             teams = dbService.getTeamsByAdminId(userId);
             res.status(200).json(teams);
             break;
@@ -93,7 +108,7 @@ router.delete('/:teamId/subscribers', (req, res) => {
 /* ----------------------- */
 /* ---- hybrid access ---- */
 /* ----------------------- */
-
+// TODO unused: remove
 router.get('/:teamId', (req, res) => {
     console.info(`received request against /auth/teams/${req.params.teamId}`);
     // TODO replace with single sql command

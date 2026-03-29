@@ -4,7 +4,7 @@ import bcrypt from "bcrypt"; // TODO: check alternatives; npm marks deprecated
 
 const SALT = process.env.SALT | 10;
 
-import dbService from "../db-service.js";
+import dbService from "../repositories/better-sqlite/sqlite3Repository.js";
 
 import usersRoute from "./users.js";
 import teamsRoute from "./teams.js";

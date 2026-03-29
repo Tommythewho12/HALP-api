@@ -1,6 +1,6 @@
 import express from "express";
 
-import dbService from "../db-service.js";
+import dbService from "../repositories/better-sqlite/sqlite3Repository.js";
 import { JOB_ENUM } from "../resources/constants.js";
 
 const router = express.Router({ mergeParams: true });
@@ -60,6 +60,8 @@ router.get('/', (req, res) => {
     const events = dbService.getEventsByTeamId(req.params.teamId);
     res.status(200).json(events);
 });
+
+// TODO add router.use to check if event is part of team and/or user(admin)
 
 router.get('/:eventId', (req, res) => {
     const event = dbService.getEventById(req.params.eventId);
