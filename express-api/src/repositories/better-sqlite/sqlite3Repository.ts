@@ -151,26 +151,6 @@ const dbServices = {
         return getSingleResult<number>(stmt.get(teamId));
     },
 
-    getTeamById: (userId: number, teamId: number) => {
-        const stmt = db.prepare(`
-      SELECT 
-        t.id, 
-        t.name, 
-        u.display_name as admin_name, 
-        CASE WHEN uxt.team_id IS NOT NULL THEN TRUE ELSE FALSE END AS is_subscribed 
-      FROM team t 
-      JOIN user u 
-        ON u.id=t.admin_id 
-      LEFT JOIN (SELECT * FROM userXteam WHERE user_id=?) uxt 
-        ON t.id=uxt.team_id 
-      WHERE t.id=?`);
-        return stmt.get(userId, teamId);
-    },
-
-    getTeamByIdAsAdmin: (teamId: number) => {
-        // TODO make SQL to fetch team with all subscribers to avoid executing 2 SQL commands in teams.js GET '/:teamId'
-    },
-
     createUserXTeam: (userId: number, teamId: number) => {
         const stmt = db.prepare(`INSERT INTO userXteam VALUES (?, ?)`);
         return stmt.run(userId, teamId);

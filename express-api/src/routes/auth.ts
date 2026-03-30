@@ -2,7 +2,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt"; // TODO: check alternatives; npm marks deprecated
 
-const SALT = process.env.SALT | 10;
+const SALT = Number(process.env.SALT) | 10;
 
 import dbService from "../repositories/better-sqlite/sqlite3Repository.js";
 
@@ -22,14 +22,18 @@ router.use('/', (req, res, next) => {
     if (authorizationHeader && authorizationHeader.split(" ")[1]) {
         const accessToken = authorizationHeader.split(" ")[1];
         try {
-            const verified = jwt.verify(accessToken, ACCESS_TOKEN_SECRET);
-            if (verified && verified.id) {
-                req.body.userId = verified.id;
-                next();
-                return; // TODO: check if cleaner way exists
+            if (typeof accessToken === 'string') {
+                const verified = jwt.verify(accessToken, ACCESS_TOKEN_SECRET) as { id: string };
+                if (verified && verified.id) {
+                    req.body.userId = verified.id;
+                    next();
+                    return; // TODO: check if cleaner way exists
+                } else {
+                    console.info("Access denied: invalid access token");
+                    errorMessage = "your session has expired. you must log in again";
+                }
             } else {
-                console.info("Access denied: invalid access token");
-                errorMessage = "your session has expired. you must log in again";
+                console.error('access token is not of type string');
             }
         } catch (error) {
             console.error("problem verifying jwt token ", error);
@@ -46,7 +50,7 @@ router.patch("/change-password", (req, res) => {
     const newPassword = req.body.newPassword || "";
 
     const oldPasswordHash = dbService.getUserPasswordHashById(req.body.userId);
-    if (oldPassword === "" || newPassword === "") {
+    if (!oldPassword || !newPassword || typeof oldPasswordHash !== 'string') {
         console.warn("updating password failed: missing value for old or new password");
         return res.status(400).send("password cannot be empty");
     } else if (!bcrypt.compareSync(oldPassword, oldPasswordHash)) {

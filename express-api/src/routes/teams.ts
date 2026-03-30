@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { type Request, type Response } from 'express';
 import { SqliteError } from 'better-sqlite3';
 
 import dbService from '../repositories/better-sqlite/sqlite3Repository.js';
@@ -31,7 +31,7 @@ router.post('/', (req, res) => {
                     return res.status(400).send('name cannot be blank');
                 case 'SQLITE_CONSTRAINT_UNIQUE':
                     if (error.message.includes('name')) {
-                        console.warn('User creation failed: displayName [' + displayName + '] already in use');
+                        console.warn('User creation failed: teamName [' + teamName + '] already in use');
                     }
                     // TODO return JSON
                     return res.status(400).send('name already in use. Please use different value');
@@ -67,8 +67,8 @@ router.get('/', (req, res) => {
 
 // figure out whether user is admin of group
 router.use('/:teamId', (req, _res, next) => {
-    const adminId = dbService.getTeamAdminId(req.params.teamId);
-    req.body.isUserAdmin = req.body.userId === adminId;
+    const adminId = dbService.getTeamAdminId(Number(req.params.teamId));
+    req.body.isUserAdmin = req.body.userId == adminId;
     console.debug(`adminId: ${adminId}; userId: ${req.body.userId}; equal? `, req.body.isUserAdmin);
     // TODO necessary?
     next();
@@ -76,17 +76,17 @@ router.use('/:teamId', (req, _res, next) => {
 
 // subscribe current user to team
 router.post('/:teamId/subscribers', (req, res) => {
+    const resultJson = {
+        team_id: req.params.teamId,
+        user_id: req.body.userId
+    };
     try {
-        dbService.createUserXTeam(req.body.userId, req.params.teamId);
-        const resultJson = {
-            team_id: req.params.teamId,
-            user_id: req.body.userId
-        }
-        res.status(200).json(resultJson);
+        dbService.createUserXTeam(Number(req.body.userId), Number(req.params.teamId));
+        return res.status(200).json(resultJson);
     } catch (err) {
-        if (err.code === 'SQLITE_CONSTRAINT_PRIMARYKEY') {
-            res.status(200).json(resultJson);
+        if (err instanceof SqliteError && err.code === 'SQLITE_CONSTRAINT_PRIMARYKEY') {
             console.warn('user already subscribed to team');
+            res.status(200).json(resultJson);
         } else {
             res.status(500).json({ error: err });
         }
@@ -95,7 +95,7 @@ router.post('/:teamId/subscribers', (req, res) => {
 
 // unsubscribe current user from team
 router.delete('/:teamId/subscribers', (req, res) => {
-    const deletedRows = dbService.removeUserXTeam(req.body.userId, req.params.teamId);
+    const deletedRows = dbService.removeUserXTeam(Number(req.body.userId), Number(req.params.teamId));
     const resultJson = {
         team_id: req.params.teamId,
         user_id: req.body.userId
@@ -106,29 +106,11 @@ router.delete('/:teamId/subscribers', (req, res) => {
     res.status(200).json(resultJson);
 });
 
-/* ----------------------- */
-/* ---- hybrid access ---- */
-/* ----------------------- */
-// TODO unused: remove
-router.get('/:teamId', (req, res) => {
-    console.info(`received request against /auth/teams/${req.params.teamId}`);
-    // TODO replace with single sql command
-    const team = dbService.getTeamById(req.body.userId, req.params.teamId);
-    team.isUserAdmin = req.body.isUserAdmin;
-    if (team.isUserAdmin) {
-        console.debug('user is admin');
-        team.subscribers = dbService.getUserXTeamByTeamId(req.params.teamId);
-    } else {
-        console.debug('user is NOT admin');
-    }
-    res.status(200).json(team);
-});
-
 /* ---------------------- */
 /* ---- admin access ---- */
 /* ---------------------- */
 
-const checkIfAdmin = (req, res, next) => {
+const checkIfAdmin = (req: Request, res: Response, next: () => void) => {
     // if (adminId === -1) {
     //   res.status(404).send('team does not exist');
     //   return;
@@ -146,7 +128,7 @@ const checkIfAdmin = (req, res, next) => {
 router.use('/:teamId', checkIfAdmin);
 
 router.delete('/:teamId', (req, res) => {
-    const deletedRows = dbService.removeTeam(req.params.teamId);
+    const deletedRows = dbService.removeTeam(Number(req.params.teamId));
     if (deletedRows === 0) {
         console.error('cannot delete team because not exists; should not enter this code');
     }
