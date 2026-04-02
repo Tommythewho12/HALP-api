@@ -1,4 +1,4 @@
-type SingleResult<T extends (string | number)> = {
+type SingleResult<T extends (string | number | boolean)> = {
     res: T
 }
 
@@ -8,7 +8,7 @@ export function isSqliteError(error: unknown): error is { code?: string; message
 }
 
 // TODO customize, so that it does not have to be called 'res'
-export function isSingleResult<T extends (string | number)>(row: unknown): row is SingleResult<T> {
+export function isSingleResult<T extends (string | number | boolean)>(row: unknown): row is SingleResult<T> {
     return typeof row === 'object' && row !== null && 'res' in row;
 }
 
@@ -20,7 +20,7 @@ export function isListResult<T extends (string | number)>(rows: unknown[]): rows
     return false;
 }
 
-export function getSingleResult<T extends (string | number)>(row: unknown): T | undefined {
+export function getSingleResult<T extends (string | number | boolean)>(row: unknown): T | undefined {
     if (isSingleResult<T>(row)) {
         return row.res as T;
     }

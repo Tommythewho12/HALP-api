@@ -1,5 +1,5 @@
 export default interface User {
-    id: string
+    id: string | null
     displayName: string
     email: string
 }

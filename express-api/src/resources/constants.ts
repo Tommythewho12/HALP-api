@@ -1,6 +1,6 @@
-export const JOB_ENUM = [
-    // "BALLER",
-    // "CLEANER",
-    "SCORER",
-    "OFFICIAL"
-];
+export enum JOB_ENUM {
+    // 'BALLER',
+    // 'CLEANER',
+    'SCORER',
+    'OFFICIAL'
+}
