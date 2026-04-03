@@ -1,14 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import SqliteDb, { type Database } from 'better-sqlite3';
-import { getSingleResult, getListResult } from './db-utils.js';
-import type User from '../domain/models/User.js';
-import type { PersistenceTransactions } from '../domain/PersistenceTransactions.js';
-import type { EnrichedTeam, Subscription, Team } from '../domain/models/Team.js';
-import type { EnrichedEvent, Event, Volunteering } from '../domain/models/Event.js';
-import type { Job } from '../domain/models/Job.js';
-import type { EnrichedEventEntity, EnrichedTeamEntity, EventEntity, JobAndUsernameEntity, JobEntity, SubscriptionAndUserEntity, TeamEntity, UserEntity, VolunteeringAndUserEntity } from './sqlite3/sqlite3_entities.js';
-import { toEnrichedEvent, toEnrichedEventOrUndefined, toEnrichedTeam, toEvent, toEventOrUndefined, toJob, toSubscription, toTeam, toTeamOrUndefined, toVolunteering } from './sqlite3/sqlite3_mapper.js';
+import { getSingleResult, getListResult } from '../db-utils.js';
+import type User from '../../domain/models/User.js';
+import type { RepositoryInterface } from '../../domain/RepositoryInterface.js';
+import type { EnrichedTeam, Subscription, Team } from '../../domain/models/Team.js';
+import type { EnrichedEvent, Event, Volunteering } from '../../domain/models/Event.js';
+import type { Job } from '../../domain/models/Job.js';
+import type { EnrichedEventEntity, EnrichedTeamEntity, EventEntity, JobAndUsernameEntity, SubscriptionAndUserEntity, TeamEntity, UserEntity, VolunteeringAndUserEntity } from './sqlite3_entities.js';
+import { toEnrichedEvent, toEnrichedEventOrUndefined, toEnrichedJob, toEnrichedTeam, toEvent, toEventOrUndefined, toJob, toSubscription, toTeamOrUndefined, toVolunteering } from './sqlite3_mapper.js';
 
 // TODO: move path to .env
 const SQLITE_PATH = 'dist/db';
@@ -52,7 +52,7 @@ if (!isDatabaseValid(db)) {
     databaseInit(db);
 }
 
-export default class BetterSqlite3Repository implements PersistenceTransactions {
+export class BetterSqlite3Repository implements RepositoryInterface {
 
     // TODO
     private db2 = new SqliteDb(SQLITE_PATH + '/halp.db');
@@ -434,7 +434,7 @@ export default class BetterSqlite3Repository implements PersistenceTransactions 
             WHERE
                 j.event_id = @eventId`
         ).all({ eventId }) as JobAndUsernameEntity[];
-        return res.map(item => toJob(item));
+        return res.map(item => toEnrichedJob(item));
     }
 }
 

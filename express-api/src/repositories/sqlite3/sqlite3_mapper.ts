@@ -1,9 +1,9 @@
 import type { EnrichedEvent, Event, Volunteering } from "../../domain/models/Event.js";
-import type { Job } from "../../domain/models/Job.js";
+import type { EnrichedJob, Job } from "../../domain/models/Job.js";
 import type { EnrichedTeam, Subscription, Team } from "../../domain/models/Team.js";
 import type User from "../../domain/models/User.js";
 import { JOB_ENUM } from "../../resources/constants.js";
-import type { EnrichedEventEntity, EnrichedTeamEntity, EventEntity, JobEntity, SubscriptionAndUserEntity, TeamEntity, UserEntity, VolunteeringAndUserEntity } from "./sqlite3_entities.js";
+import type { EnrichedEventEntity, EnrichedTeamEntity, EventEntity, JobAndUsernameEntity, JobEntity, SubscriptionAndUserEntity, TeamEntity, UserEntity, VolunteeringAndUserEntity } from "./sqlite3_entities.js";
 
 function isTeamEntity(input: any): input is TeamEntity {
     return typeof input === 'object' && 'id' in input && typeof input.id === 'number' && 'name' in input && typeof input.name === 'string' && 'admin_id' in input && typeof input.admin_id === 'number';
@@ -149,7 +149,7 @@ function isJobEnum(input: any): input is JOB_ENUM {
 }
 
 function isJobEntity(input: any): input is JobEntity {
-    return typeof input === 'object' && 'id' in input && typeof input.id === 'number' && 'event_id' in input && typeof input.event_id === 'number' && 'type' in input && isJobEnum(input.type) && 'user_id' in input && typeof input.user_id === 'number';
+    return typeof input === 'object' && 'id' in input && typeof input.id === 'number' && 'event_id' in input && typeof input.event_id === 'number' && 'type' in input && isJobEnum(input.type) && 'assignee_id' in input && typeof input.assignee_id === 'number';
 }
 
 export function toJob(input: any): Job {
@@ -159,6 +159,20 @@ export function toJob(input: any): Job {
         id: String(input.id),
         eventId: String(input.event_id),
         type: input.type,
-        assigneeId: String(input.user_id)
+        assigneeId: String(input.assignee_id)
+    }
+}
+
+function isJobAndUsernameEntity(input: any): input is JobAndUsernameEntity {
+    return isJobEntity(input) && 'assignee_name' in input && typeof input.assignee_name === 'number';
+}
+
+export function toEnrichedJob(input: any): EnrichedJob {
+    if (!isJobAndUsernameEntity(input))
+        throw new Error('cannot parse given input to type EnrichedJob');
+    const job = toJob(input);
+    return {
+        ...job,
+        assigneeName: String(input.assignee_name)
     }
 }

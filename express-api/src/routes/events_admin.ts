@@ -1,6 +1,6 @@
 import express, { type Request } from 'express';
 
-import Repository from '../repositories/Repository.js';
+import { repository } from '../repositories/repository.js';
 import { JOB_ENUM } from '../resources/constants.js';
 import type { Event } from '../domain/models/Event.js';
 import { errorJson, successJson } from './api-utils.js';
@@ -32,7 +32,7 @@ router.post('/', async (req: Request<{ teamId: string }, {}, CreateEventBody>, r
     }
 
     for (const [job, count] of Object.entries(newJobs)) {
-        if (typeof job !== 'string' || !JOB_ENUM.includes(job.toUpperCase())) {
+        if (typeof job !== 'string' || !(typeof JOB_ENUM).includes(job.toUpperCase())) {
             return res.status(400).send(errorJson('invalid job type'));
         } else if (typeof count !== 'number' || count < 0) {
             return res.status(400).send(errorJson('invalid number of jobs'));
@@ -47,10 +47,10 @@ router.post('/', async (req: Request<{ teamId: string }, {}, CreateEventBody>, r
         teamId: req.params.teamId,
         complete: false
     }
-    const eventId = await Repository.createEvent(event);
+    const eventId = await repository.createEvent(event);
     for (const [job, count] of Object.entries(newJobs) as [keyof typeof newJobs, number][]) {
         for (let i = 0; i < count; i++) {
-            await Repository.createJob(eventId, job);
+            await repository.createJob(eventId, job);
         }
     }
 
@@ -69,25 +69,25 @@ router.post('/', async (req: Request<{ teamId: string }, {}, CreateEventBody>, r
 });
 
 router.delete('/:eventId', async (req: Request<{ teamId: string, eventId: string }, {}, any>, res) => {
-    await Repository.deleteEvent(req.params.eventId);
+    await repository.deleteEvent(req.params.eventId);
     return res.status(200).send(successJson('event deleted'));
 });
 
 router.get('/', async (req: Request<{ teamId: string, eventId: string }, {}, any>, res) => {
-    const events = await Repository.getEventsByTeamId(req.params.teamId);
+    const events = await repository.getEventsByTeamId(req.params.teamId);
     return res.status(200).json(events);
 });
 
 // TODO add router.use to check if event is part of team and/or user(admin)
 
 router.get('/:eventId', async (req: Request<{ teamId: string, eventId: string }, {}, any>, res) => {
-    const event = await Repository.getEvent(req.params.eventId);
+    const event = await repository.getEvent(req.params.eventId);
     if (!event) {
         res.status(404).json({ error: 'event not found' });
         return;
     }
-    const volunteers = await Repository.getVolunteeringsByEventId(req.params.eventId);
-    const jobs = await Repository.getJobsByEventId(req.params.eventId);
+    const volunteers = await repository.getVolunteeringsByEventId(req.params.eventId);
+    const jobs = await repository.getJobsByEventId(req.params.eventId);
 
     res.status(200).json({ ...event, volunteers, jobs });
 });
@@ -97,7 +97,7 @@ router.post('/:eventId/jobs', async (req, res) => {
     // TODO: validate jobsType
 
     try {
-        await Repository.createJob(req.params.eventId, req.body.jobType);
+        await repository.createJob(req.params.eventId, req.body.jobType);
         res.status(202).send(successJson('job added'));
     } catch (err) {
         console.error('POST:/auth/teams/:teamId/events/:eventId/jobs', err);
@@ -106,7 +106,7 @@ router.post('/:eventId/jobs', async (req, res) => {
 });
 
 router.delete('/:eventId/jobs/:jobId', async (req, res) => {
-    await Repository.deleteJob(req.params.jobId);
+    await repository.deleteJob(req.params.jobId);
     res.status(200).send(successJson('job removed'));
 });
 
@@ -114,7 +114,7 @@ router.delete('/:eventId/jobs/:jobId', async (req, res) => {
 router.patch('/:eventId/jobs/:jobId', async (req, res) => {
     // when adding check first if user is volunteering for event
     if (req.body.volunteerId !== undefined && req.body.volunteerId !== null) {
-        const isVolunteering = await Repository.isUserVolunteering(req.params.eventId, req.body.volunteerId);
+        const isVolunteering = await repository.isUserVolunteering(req.params.eventId, req.body.volunteerId);
         if (!isVolunteering) {
             console.info('PATCH:/teams/:teamId/events/:eventId/jobs/:jobId - trying to assign user that does not volunteer to job');
             res.status(400).send(errorJson('cannot assign users not volunteering'));
@@ -124,7 +124,7 @@ router.patch('/:eventId/jobs/:jobId', async (req, res) => {
 
     // then add volunteer to job
     try {
-        await Repository.updateJob(req.params.jobId, req.body.volunteerId);
+        await repository.updateJob(req.params.jobId, req.body.volunteerId);
         if (req.body.volunteerId)
             res.status(200).send(successJson('volunteer assigned to job'));
         else

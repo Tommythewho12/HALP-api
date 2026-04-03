@@ -6,3 +6,7 @@ export interface Job {
     type: keyof typeof JOB_ENUM
     assigneeId: string
 }
+
+export interface EnrichedJob extends Job {
+    assigneeName: string
+}

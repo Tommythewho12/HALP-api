@@ -1,7 +1,7 @@
-import type { PersistenceTransactions } from "../domain/PersistenceTransactions.js";
-import BetterSqlite3Repository from "./BetterSqlite3Repository.js";
+import type { RepositoryInterface } from "../domain/RepositoryInterface.js";
+import { BetterSqlite3Repository } from "./sqlite3/bettersqlite3_repository.js";
 
-function createRepository(): PersistenceTransactions {
+function createRepository(): RepositoryInterface {
     switch (process.env.DB_DRIVER) {
         case 'BETTER-SQLITE3':
             console.debug('#### found env for SQLITE3');
@@ -11,6 +11,4 @@ function createRepository(): PersistenceTransactions {
     }
 }
 
-const Repository: PersistenceTransactions = createRepository();
-
-export default Repository;
+export const repository: RepositoryInterface = createRepository();

@@ -4,7 +4,7 @@ import bcrypt from 'bcrypt'; // TODO: check alternatives; npm marks deprecated
 
 const SALT = Number(process.env.SALT) | 10;
 
-import Repository from '../repositories/Repository.js';
+import { repository } from '../repositories/repository.js';
 
 import usersRoute from './users.js';
 import teamsRoute from './teams.js';
@@ -49,7 +49,7 @@ router.patch('/change-password', async (req, res) => {
     const oldPassword = req.body.oldPassword || '';
     const newPassword = req.body.newPassword || '';
 
-    const oldPasswordHash = await Repository.getPassword(req.body.userId);
+    const oldPasswordHash = await repository.getPassword(req.body.userId);
     if (!oldPassword || !newPassword || typeof oldPasswordHash !== 'string') {
         console.warn('updating password failed: missing value for old or new password');
         return res.status(400).send('password cannot be empty');
@@ -62,7 +62,7 @@ router.patch('/change-password', async (req, res) => {
     }
 
     // TODO: add password requirements, also in /signup
-    await Repository.updatePasswordByUserId(req.body.userId, bcrypt.hashSync(newPassword, SALT));
+    await repository.updatePasswordByUserId(req.body.userId, bcrypt.hashSync(newPassword, SALT));
 
     // TODO: send email to inform about change-password
     return res.status(200).send('password changed');

@@ -1,7 +1,7 @@
 import express, { type Request, type Response } from 'express';
 import { SqliteError } from 'better-sqlite3';
 
-import Repository from '../repositories/Repository.js';
+import { repository } from '../repositories/repository.js';
 import eventsRoute from './events_admin.js';
 import type { Team } from '../domain/models/Team.js';
 import { errorJson, successJson } from './api-utils.js';
@@ -21,7 +21,7 @@ router.post('/', async (req, res) => {
     }
 
     try {
-        const newTeamId = await Repository.createTeam(team);
+        const newTeamId = await repository.createTeam(team);
 
         const newTeam = {
             id: newTeamId,
@@ -63,7 +63,7 @@ router.post('/', async (req, res) => {
 router.get('/', async (req, res) => {
     const userId = req.body.userId;
     if (userId && typeof userId === 'string') {
-        const teams = await Repository.getTeamsBySubscriberId(userId);
+        const teams = await repository.getTeamsBySubscriberId(userId);
         return res.status(200).json(teams);
     }
     return res.status(400).json(errorJson('missing user id'));
@@ -72,7 +72,7 @@ router.get('/', async (req, res) => {
 // figure out whether user is admin of group
 router.use('/:teamId', async (req, _res, next) => {
     if (req.params.teamId) {
-        const isAdmin = await Repository.isUserTeamAdmin(req.params.teamId, req.body.userId);
+        const isAdmin = await repository.isUserTeamAdmin(req.params.teamId, req.body.userId);
         req.body.isUserAdmin = isAdmin;
         console.debug(`userId: ${req.body.userId}; isAdmin? `, isAdmin);
 
@@ -89,7 +89,7 @@ router.post('/:teamId/subscribers', async (req, res) => {
         user_id: req.body.userId
     };
     try {
-        await Repository.createSubscription(req.body.userId, req.params.teamId);
+        await repository.createSubscription(req.body.userId, req.params.teamId);
         return res.status(200).json(resultJson);
     } catch (err) {
         if (err instanceof SqliteError && err.code === 'SQLITE_CONSTRAINT_PRIMARYKEY') {
@@ -104,7 +104,7 @@ router.post('/:teamId/subscribers', async (req, res) => {
 // unsubscribe current user from team
 router.delete('/:teamId/subscribers', async (req, res) => {
     try {
-        await Repository.deleteSubscription(req.params.teamId, req.body.userId);
+        await repository.deleteSubscription(req.params.teamId, req.body.userId);
         const resultJson = {
             team_id: req.params.teamId,
             user_id: req.body.userId
@@ -133,7 +133,7 @@ const checkIfAdmin = (req: Request, res: Response, next: () => void) => {
 router.use('/:teamId', checkIfAdmin);
 
 router.delete('/:teamId', async (req, res) => {
-    await Repository.deleteTeam(req.params.teamId);
+    await repository.deleteTeam(req.params.teamId);
     res.status(200).send(successJson('team deleted'));
 });
 

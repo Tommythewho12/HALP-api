@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt'; // TODO: check alternatives; npm marks deprecated
 import { SqliteError } from 'better-sqlite3';
 
-import Repository from '../repositories/Repository.js';
+import { repository } from '../repositories/repository.js';
 import emailService from '../services/email-service.js';
 import { decode } from 'node:punycode';
 import type User from '../domain/models/User.js';
@@ -20,13 +20,13 @@ const createAccessToken = (userId: string) => {
     });
 };
 
-const createRefreshToken = (userId: string) => {
+const createRefreshToken = async (userId: string) => {
     // TODO add tokenVersion to jwt for improved security (e.g. password changes)
     const refreshToken = jwt.sign({ id: userId }, REFRESH_TOKEN_SECRET, {
         expiresIn: '90d',
     });
     const hashedToken = bcrypt.hashSync(refreshToken, SALT);
-    Repository.updateRefreshToken(userId, hashedToken);
+    await repository.updateRefreshToken(userId, hashedToken);
     return refreshToken;
 };
 
@@ -45,7 +45,7 @@ const generateRandomPassword = (length: number) => {
 
 const router = express.Router({ mergeParams: true });
 
-router.post('/signup', (req, res) => {
+router.post('/signup', async (req, res) => {
     // TODO set random password first and force user to change on first login
     // TODO research why const displayName = req.body.displayName?.trim() ?? null; does not evaluate to null if ''
     const displayName = req.body.displayName ? req.body.displayName.trim() : null;
@@ -60,7 +60,7 @@ router.post('/signup', (req, res) => {
             displayName: displayName,
             email: email
         }
-        Repository.createUser(newUser, passwordHash);
+        await repository.createUser(newUser, passwordHash);
         console.info('User created: displayName [' + displayName + '], email [' + email + ']');
         return res.status(202).send(successJson('User successfully created'));
     } catch (err) {
@@ -105,12 +105,12 @@ router.post('/login', async (req, res) => {
     }
 
     // TODO user .then().catch() syntax
-    const user = await Repository.getUserByEmail(email);
+    const user = await repository.getUserByEmail(email);
     if (!user || !user.id) {
         // TODO throw (generic) Error and catch with middleware
         throw new Error('todo');
     }
-    const hashedPassword = await Repository.getPassword(user.id);
+    const hashedPassword = await repository.getPassword(user.id);
     if (!hashedPassword) {
         throw new Error('todo');
     }
@@ -133,13 +133,13 @@ router.post('/login', async (req, res) => {
 
 router.post('/logout', async (req, res) => {
     res.clearCookie('refreshToken');
-    const user = await Repository.getUserByEmail(req.body.email);
+    const user = await repository.getUserByEmail(req.body.email);
     if (!user) {
         // TODO
         throw new Error('todo');
     }
     // TODO try catch
-    await Repository.deleteRefreshToken(req.body.email);
+    await repository.deleteRefreshToken(req.body.email);
     return res.status(200).send('logged out successfully');
 });
 
@@ -174,7 +174,7 @@ router.post('/refresh-token', async (req, res) => {
 
         let storedRefreshToken;
         try {
-            storedRefreshToken = await Repository.getRefreshToken(userId);
+            storedRefreshToken = await repository.getRefreshToken(userId);
         } catch (err) {
             console.error('error while trying to refresh access token', err);
             return res.status(500).send('something went wrong');
@@ -208,11 +208,11 @@ router.post('/reset-password', async (req, res) => {
     const randomPassword = generateRandomPassword(8);
     const hashedPassword = bcrypt.hashSync(randomPassword, SALT);
 
-    const user = await Repository.getUserByEmail(email);
+    const user = await repository.getUserByEmail(email);
     if (user) {
         console.info('password was not reset; email does not exist');
     } else {
-        await Repository.updatePasswordByUserEmail(req.body.email, hashedPassword);
+        await repository.updatePasswordByUserEmail(req.body.email, hashedPassword);
         try {
             emailService.sendMailPasswordReset(email, randomPassword);
         } catch (err) {
