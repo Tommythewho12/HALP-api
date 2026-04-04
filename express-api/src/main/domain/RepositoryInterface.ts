@@ -1,6 +1,6 @@
 import type User from "./models/User.js"
 import type { Team, TeamEnriched, Subscription } from "./models/Team.js"
-import type { Event, EventEnriched, Volunteering, VolunteeringEnriched } from "./models/Event.js"
+import type { Event, EventEnriched, VolunteeringEnriched } from "./models/Event.js"
 import type { JobEnriched } from "./models/Job.js"
 
 export interface RepositoryInterface extends

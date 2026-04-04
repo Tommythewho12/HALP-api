@@ -3,12 +3,12 @@
   "version": "0.1.0",
   "description": "",
   "private": true,
-  "main": "src/server.ts",
+  "main": "src/main/server.ts",
   "scripts": {
     "build": "tsc",
     "type-check": "tsc --no-emit",
-    "dev": "tsx --watch --env-file .env src/server.ts",
-    "start": "node --env-file .env dist/server.js"
+    "dev": "tsx --watch --env-file src/main/resources/.env src/main/server.ts",
+    "start": "node --env-file src/main/resources/.env dist/server.js"
   },
   "keywords": [],
   "author": "Tommy",

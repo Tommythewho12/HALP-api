@@ -3,7 +3,7 @@
   // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
     // File Layout
-    "rootDir": "./src",
+    "rootDir": "./main/src",
     "outDir": "./dist",
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
@@ -38,11 +38,12 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
-    "allowJs": true,
+    // added later
+    "allowJs": false,
+    "moduleResolution": "nodenext",
   },
   "include": [
-    "src/**/*.ts",
-    "src/**/*.js"
+    "src/main/**/*.ts"
   ],
   "exclude": [
     "dist"

@@ -4,7 +4,6 @@ import bcrypt from 'bcrypt'; // TODO: check alternatives; npm marks deprecated
 import { SqliteError } from 'better-sqlite3';
 
 import { repository } from '../repositories/repository.js';
-import emailService from '../services/email-service.js';
 import { decode } from 'node:punycode';
 import type User from '../domain/models/User.js';
 import { errorJson, successJson } from './api-utils.js';
@@ -30,7 +29,7 @@ const createRefreshToken = async (userId: string) => {
     return refreshToken;
 };
 
-const generateRandomPassword = (length: number) => {
+/*const generateRandomPassword = (length: number) => {
     let result = '';
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     const charactersLength = characters.length;
@@ -40,7 +39,7 @@ const generateRandomPassword = (length: number) => {
         counter += 1;
     }
     return result;
-};
+};*/
 
 
 const router = express.Router({ mergeParams: true });

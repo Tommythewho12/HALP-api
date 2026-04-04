@@ -71,16 +71,16 @@ router.get('/:eventId', async (req, res) => {
 router.post('/:eventId/volunteers', async (req, res) => {
     try {
         await repository.createVolunteering(req.params.eventId, req.body.userId);
-        res.status(202).send('volunteer added to event');
+        return res.status(202).send('volunteer added to event');
     } catch (err) {
         if (err instanceof SqliteError) {
             if (err.code === 'SQLITE_CONSTRAINT_PRIMARYKEY') {
                 console.warn('POST:/auth/events/:eventId/volunteers - volunteer already assigned to event');
-                res.status(202).send('volunteer added to event');
+                return res.status(202).send('volunteer added to event');
             } else {
                 // TODO: better error handling
                 console.error('trying to ', err);
-                res.status(500).send('something went wrong');
+                return res.status(500).send('something went wrong');
             }
         }
         console.error('unknown error while accessing database', err);
