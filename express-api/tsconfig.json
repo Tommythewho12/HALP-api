@@ -3,7 +3,7 @@
   // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
     // File Layout
-    "rootDir": "./main/src",
+    "rootDir": "./src/main",
     "outDir": "./dist",
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
@@ -18,8 +18,8 @@
     // and npm install -D @types/node
     // Other Outputs
     "sourceMap": true,
-    "declaration": true,
-    "declarationMap": true,
+    "declaration": false,
+    "declarationMap": false,
     // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
@@ -46,6 +46,7 @@
     "src/main/**/*.ts"
   ],
   "exclude": [
-    "dist"
+    "dist",
+    "src/test/**/*"
   ]
 }
