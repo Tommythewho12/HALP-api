@@ -6,7 +6,7 @@ export interface Team {
     adminId: string
 }
 
-export interface EnrichedTeam extends Team {
+export interface TeamEnriched extends Team {
     isSubscribed: boolean
     isAdmin: boolean
 }

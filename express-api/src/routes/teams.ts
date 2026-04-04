@@ -126,7 +126,7 @@ const checkIfAdmin = (req: Request, res: Response, next: () => void) => {
     }
     // TODO not conform to expressjs architecture
     console.warn('trying to execute priviledged actions on team without proper authorization');
-    res.status(403).send('no permissions for this action');
+    res.status(403).send(errorJson('no permissions for this action'));
 };
 
 // TODO: check efficiency of double getTeamById call

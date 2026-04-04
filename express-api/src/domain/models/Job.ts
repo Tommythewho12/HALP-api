@@ -7,6 +7,6 @@ export interface Job {
     assigneeId: string
 }
 
-export interface EnrichedJob extends Job {
+export interface JobEnriched extends Job {
     assigneeName: string
 }

@@ -4,11 +4,11 @@ import SqliteDb, { type Database } from 'better-sqlite3';
 import { getSingleResult, getListResult } from '../db-utils.js';
 import type User from '../../domain/models/User.js';
 import type { RepositoryInterface } from '../../domain/RepositoryInterface.js';
-import type { EnrichedTeam, Subscription, Team } from '../../domain/models/Team.js';
-import type { EnrichedEvent, Event, Volunteering } from '../../domain/models/Event.js';
+import type { TeamEnriched, Subscription, Team } from '../../domain/models/Team.js';
+import type { EventEnriched, Event, Volunteering } from '../../domain/models/Event.js';
 import type { Job } from '../../domain/models/Job.js';
-import type { EnrichedEventEntity, EnrichedTeamEntity, EventEntity, JobAndUsernameEntity, SubscriptionAndUserEntity, TeamEntity, UserEntity, VolunteeringAndUserEntity } from './sqlite3_entities.js';
-import { toEnrichedEvent, toEnrichedEventOrUndefined, toEnrichedJob, toEnrichedTeam, toEvent, toEventOrUndefined, toJob, toSubscription, toTeamOrUndefined, toVolunteering } from './sqlite3_mapper.js';
+import type { EventEnrichedEntity, TeamEnrichedEntity, EventEntity, JobAndUsernameEntity, SubscriptionAndUserEntity, TeamEntity, UserEntity, VolunteeringAndUserEntity } from './sqlite3_entities.js';
+import { toEnrichedEvent, toEnrichedEventOrUndefined, toEnrichedJob, toEnrichedTeam, toEvent, toEventOrUndefined, toJob, toSubscription, toTeamOrUndefined, toEnrichedVolunteering } from './sqlite3_mapper.js';
 
 // TODO: move path to .env
 const SQLITE_PATH = 'dist/db';
@@ -165,7 +165,7 @@ export class BetterSqlite3Repository implements RepositoryInterface {
     }
 
     // TODO: pagination, filters, ... 
-    async getTeamsBySubscriberId(subscriberId: string): Promise<EnrichedTeam[]> {
+    async getTeamsBySubscriberId(subscriberId: string): Promise<TeamEnriched[]> {
         const res = db.prepare(`
             SELECT 
                 t.*, 
@@ -174,7 +174,7 @@ export class BetterSqlite3Repository implements RepositoryInterface {
             FROM team t 
             LEFT JOIN (SELECT * FROM userXteam WHERE subscriber_id = @subscriberId) uxt 
                 ON t.id=uxt.team_id`
-        ).all({ subscriberId }) as EnrichedTeamEntity[];
+        ).all({ subscriberId }) as TeamEnrichedEntity[];
         return res.map(item => toEnrichedTeam(item));
     }
 
@@ -288,7 +288,7 @@ export class BetterSqlite3Repository implements RepositoryInterface {
         },*/
 
     // TODO compare this SQL with below
-    async getEnrichedEvent(eventId: string, userId: string): Promise<EnrichedEvent | undefined> {
+    async getEnrichedEvent(eventId: string, userId: string): Promise<EventEnriched | undefined> {
         const res = db.prepare(`
             SELECT 
                 e.*,
@@ -303,7 +303,7 @@ export class BetterSqlite3Repository implements RepositoryInterface {
                 ON e.id = j.event_id AND j.assignee_id = uxt.subscriber_id
             WHERE e.id = ? AND uxt.subscriber_id = ?
             LIMIT 1`
-        ).get(eventId, userId) as EnrichedEventEntity | undefined;
+        ).get(eventId, userId) as EventEnrichedEntity | undefined;
         return toEnrichedEventOrUndefined(res);
     }
 
@@ -335,7 +335,7 @@ export class BetterSqlite3Repository implements RepositoryInterface {
                     WHERE id = e.team_id AND admin_id = @userId
                 ))
                 AND start_datetime > strftime('%s','now','start of day')`
-        ).all({ userId }) as EnrichedEventEntity[];
+        ).all({ userId }) as EventEnrichedEntity[];
         return res.map(item => toEnrichedEvent(item));
     }
 
@@ -364,7 +364,7 @@ export class BetterSqlite3Repository implements RepositoryInterface {
                 ON u.id=uxe.volunteer_id
             WHERE uxe.event_id = ?`
         ).all(eventId) as VolunteeringAndUserEntity[];
-        return res.map(item => toVolunteering(item));
+        return res.map(item => toEnrichedVolunteering(item));
     }
 
     async isUserVolunteering(eventId: string, userId: string) {

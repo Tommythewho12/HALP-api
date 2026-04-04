@@ -88,20 +88,14 @@ router.post('/:eventId/volunteers', async (req, res) => {
     }
 });
 
-router.delete('/:eventId/volunteers', async (req, res) => {
+router.delete('/:eventId/volunteers/:volunteerId', async (req, res) => {
     // if user already assigned, unvolunteering not permitted
-    const isAssigned = await repository.isAssigned(req.params.eventId, req.body.userId);
+    const isAssigned = await repository.isAssigned(req.params.eventId, req.params.volunteerId);
     if (isAssigned) {
         return res.status(400).send(errorJson('user is already assigned to a job within this event'));
     }
     await repository.deleteVolunteering(req.body.userId, req.params.eventId);
     return res.status(200).send(successJson('volunteer withdrawn from event'));
-});
-
-router.get('/:eventId', async (req, res) => {
-    console.info(`received request against /auth/events/${req.params.eventId}`);
-    const event = await repository.getEnrichedEvent(req.params.eventId, req.body.userId);
-    res.status(200).json(event);
 });
 
 export default router;

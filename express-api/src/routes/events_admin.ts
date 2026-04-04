@@ -76,10 +76,12 @@ router.delete('/:eventId', async (req: Request<{ teamId: string, eventId: string
     return res.status(200).send(successJson('event deleted'));
 });
 
-router.get('/', async (req: Request<{ teamId: string, eventId: string }, {}, any>, res) => {
+// never used
+/*
+router.get('/', async (req: Request<{ teamId: string }, {}, any>, res) => {
     const events = await repository.getEventsByTeamId(req.params.teamId);
     return res.status(200).json(events);
-});
+});*/
 
 // TODO add router.use to check if event is part of team and/or user(admin)
 
@@ -92,7 +94,7 @@ router.get('/:eventId', async (req: Request<{ teamId: string, eventId: string },
     const volunteers = await repository.getVolunteeringsByEventId(req.params.eventId);
     const jobs = await repository.getEnrichedJobsByEventId(req.params.eventId);
 
-    res.status(200).json({ ...event, volunteers, jobs });
+    res.status(200).json({ event: event, volunteers: volunteers, jobs: jobs });
 });
 
 

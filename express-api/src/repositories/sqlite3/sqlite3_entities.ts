@@ -16,7 +16,7 @@ export interface TeamEntity {
     admin_id: number
 }
 
-export interface EnrichedTeamEntity extends TeamEntity {
+export interface TeamEnrichedEntity extends TeamEntity {
     is_subscribed: 0 | 1
     is_admin: 0 | 1
 }
@@ -39,7 +39,7 @@ export interface EventEntity {
     complete: 0 | 1
 }
 
-export interface EnrichedEventEntity extends EventEntity {
+export interface EventEnrichedEntity extends EventEntity {
     is_volunteering: 0 | 1
     is_assigned: 0 | 1
 }

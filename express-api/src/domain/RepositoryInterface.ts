@@ -1,7 +1,7 @@
 import type User from "./models/User.js"
-import type { Team, EnrichedTeam, Subscription } from "./models/Team.js"
-import type { Event, EnrichedEvent, Volunteering } from "./models/Event.js"
-import type { EnrichedJob } from "./models/Job.js"
+import type { Team, TeamEnriched, Subscription } from "./models/Team.js"
+import type { Event, EventEnriched, Volunteering, VolunteeringEnriched } from "./models/Event.js"
+import type { JobEnriched } from "./models/Job.js"
 
 export interface RepositoryInterface extends
     UserInterface,
@@ -34,7 +34,7 @@ interface TeamInterface {
     createTeam(team: Team): Promise<string>
     deleteTeam(teamId: string): Promise<void>
     getTeam(teamId: string): Promise<Team | undefined>
-    getTeamsBySubscriberId(subscriberId: string): Promise<EnrichedTeam[]>
+    getTeamsBySubscriberId(subscriberId: string): Promise<TeamEnriched[]>
     isUserTeamAdmin(teamId: string, userId: string): Promise<boolean>
 }
 
@@ -49,14 +49,14 @@ interface EventInterface {
     deleteEvent(eventId: string): Promise<void>
     getEvent(eventId: string): Promise<Event | undefined>
     getEventsByTeamId(teamId: string): Promise<Event[]>
-    getEnrichedEvent(eventId: string, userId: string): Promise<EnrichedEvent | undefined>
-    getEnrichedEventsByVolunteerId(userId: string): Promise<EnrichedEvent[]>
+    getEnrichedEvent(eventId: string, userId: string): Promise<EventEnriched | undefined>
+    getEnrichedEventsByVolunteerId(userId: string): Promise<EventEnriched[]>
 }
 
 interface VolunteeringInterface {
     createVolunteering(eventId: string, userId: string): Promise<string>
     deleteVolunteering(eventId: string, userId: string): Promise<void>
-    getVolunteeringsByEventId(eventId: string): Promise<Volunteering[]>
+    getVolunteeringsByEventId(eventId: string): Promise<VolunteeringEnriched[]>
     isUserVolunteering(eventId: string, userId: string): Promise<boolean>
     isAssigned(eventId: string, userId: string): Promise<boolean>
 }
@@ -65,5 +65,5 @@ interface JobInterface {
     createJob(eventId: string, jobType: string): Promise<string>
     updateJob(jobId: string, userId: string | null): Promise<void>
     deleteJob(jobId: string): Promise<void>
-    getEnrichedJobsByEventId(eventId: string): Promise<EnrichedJob[]>
+    getEnrichedJobsByEventId(eventId: string): Promise<JobEnriched[]>
 }

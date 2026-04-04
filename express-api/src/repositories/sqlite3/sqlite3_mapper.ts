@@ -1,9 +1,9 @@
-import type { EnrichedEvent, Event, Volunteering } from "../../domain/models/Event.js";
-import type { EnrichedJob, Job } from "../../domain/models/Job.js";
-import type { EnrichedTeam, Subscription, Team } from "../../domain/models/Team.js";
+import type { EventEnriched, VolunteeringEnriched, Event, Volunteering } from "../../domain/models/Event.js";
+import type { JobEnriched, Job } from "../../domain/models/Job.js";
+import type { TeamEnriched, Subscription, Team } from "../../domain/models/Team.js";
 import type User from "../../domain/models/User.js";
 import { JobTypes } from "../../resources/constants.js";
-import type { EnrichedEventEntity, EnrichedTeamEntity, EventEntity, JobAndUsernameEntity, JobEntity, SubscriptionAndUserEntity, TeamEntity, UserEntity, VolunteeringAndUserEntity } from "./sqlite3_entities.js";
+import type { EventEnrichedEntity, TeamEnrichedEntity, EventEntity, JobAndUsernameEntity, JobEntity, SubscriptionAndUserEntity, TeamEntity, UserEntity, VolunteeringAndUserEntity } from "./sqlite3_entities.js";
 
 function isTeamEntity(input: any): input is TeamEntity {
     return typeof input === 'object' && 'id' in input && typeof input.id === 'number' && 'name' in input && typeof input.name === 'string' && 'admin_id' in input && typeof input.admin_id === 'number';
@@ -32,11 +32,11 @@ function isSqlite3Boolean(input: any): boolean {
     return input === 0 || input === 1;
 }
 
-function isEnrichedTeamEntity(input: any): input is EnrichedTeamEntity {
+function isEnrichedTeamEntity(input: any): input is TeamEnrichedEntity {
     return isTeamEntity(input) && 'is_subscribed' in input && isSqlite3Boolean(input.is_subscribed) && 'is_admin' in input && isSqlite3Boolean(input.is_admin);
 }
 
-export function toEnrichedTeam(input: any): EnrichedTeam {
+export function toEnrichedTeam(input: any): TeamEnriched {
     if (!isEnrichedTeamEntity(input))
         throw new Error('cannot parse given input to type EnrichedTeam', input);
     return {
@@ -48,7 +48,7 @@ export function toEnrichedTeam(input: any): EnrichedTeam {
     }
 }
 
-export function toEnrichedTeamOrUndefined(input: any): EnrichedTeam | undefined {
+export function toEnrichedTeamOrUndefined(input: any): TeamEnriched | undefined {
     try {
         return toEnrichedTeam(input);
     } catch {
@@ -108,11 +108,11 @@ export function toEventOrUndefined(input: any): Event | undefined {
     }
 }
 
-function isEnrichedEventEntity(input: any): input is EnrichedEventEntity {
+function isEnrichedEventEntity(input: any): input is EventEnrichedEntity {
     return isEventEntity(input) && 'is_volunteering' in input && isSqlite3Boolean(input.is_volunteering) && 'is_assigned' in input && isSqlite3Boolean(input.is_assigned);
 }
 
-export function toEnrichedEvent(input: any): EnrichedEvent {
+export function toEnrichedEvent(input: any): EventEnriched {
     if (!isEnrichedEventEntity(input))
         throw new Error('cannot parse given input to type EnrichedEvent', input);
     const event = toEvent(input);
@@ -123,7 +123,7 @@ export function toEnrichedEvent(input: any): EnrichedEvent {
     }
 }
 
-export function toEnrichedEventOrUndefined(input: any): EnrichedEvent | undefined {
+export function toEnrichedEventOrUndefined(input: any): EventEnriched | undefined {
     try {
         return toEnrichedEvent(input);
     } catch {
@@ -135,12 +135,12 @@ function isVolunteeringAndUserEntity(input: any): input is VolunteeringAndUserEn
     return isUserEntity(input) && 'event_id' in input && typeof input.event_id === 'number';
 }
 
-export function toVolunteering(input: any): Volunteering {
+export function toEnrichedVolunteering(input: any): VolunteeringEnriched {
     if (!isVolunteeringAndUserEntity(input))
         throw new Error('cannot parse given input to type Volunteering', input);
     return {
         eventId: String(input.event_id),
-        user: toUser(input)
+        volunteer: toUser(input)
     }
 }
 
@@ -174,7 +174,7 @@ function isJobAndUsernameEntity(input: any): input is JobAndUsernameEntity {
     return isJobEntity(input) && 'assignee_name' in input && (input.assignee_name === null || typeof input.assignee_name === 'number');
 }
 
-export function toEnrichedJob(input: any): EnrichedJob {
+export function toEnrichedJob(input: any): JobEnriched {
     if (!isJobAndUsernameEntity(input))
         throw new Error('cannot parse given input to type EnrichedJob', input);
     const job = toJob(input);

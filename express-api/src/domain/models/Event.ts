@@ -9,12 +9,17 @@ export interface Event {
     complete: boolean
 }
 
-export interface EnrichedEvent extends Event {
+export interface EventEnriched extends Event {
     isVolunteering: boolean
     isAssigned: boolean
 }
 
 export interface Volunteering {
     eventId: string
-    user: User
+    volunteerId: string
+}
+
+export interface VolunteeringEnriched {
+    eventId: string
+    volunteer: User
 }

@@ -143,7 +143,6 @@ router.post('/logout', async (req, res) => {
     return res.status(200).send('logged out successfully');
 });
 
-// TODO change to GET request
 router.post('/refresh-token', async (req, res) => {
     try {
         const refreshToken = req.cookies.refreshToken;
@@ -191,8 +190,7 @@ router.post('/refresh-token', async (req, res) => {
             .status(200)
             .cookie('refreshToken', newRefreshToken)
             .json({
-                accessToken: newAccessToken,
-                msg: 're-authentication success'
+                accessToken: newAccessToken
             });
     } catch (err) {
         console.info('error trying to refresh acces token', err);
@@ -201,7 +199,7 @@ router.post('/refresh-token', async (req, res) => {
 });
 
 // TODO: only update password after email confirmation
-router.post('/reset-password', async (req, res) => {
+/*router.post('/reset-password', async (req, res) => {
     res.clearCookie('refreshToken');
 
     const email = req.body.email ? req.body.email.trim() : '';
@@ -221,10 +219,6 @@ router.post('/reset-password', async (req, res) => {
         }
     }
     return res.status(200).send(successJson('a new password was sent to your email'));
-});
-
-router.get('/test', (req, res) => {
-    return res.status(200).send('send feet pics!');
-});
+});*/
 
 export default router;
