@@ -56,10 +56,10 @@ export interface VolunteeringAndUserEntity extends UserEntity {
 export interface JobEntity {
     id: number
     event_id: number
-    type: 'SCORER' | 'OFFICIAL'
-    assignee_id: number
+    type: string
+    assignee_id: number | null
 }
 
 export interface JobAndUsernameEntity extends JobEntity {
-    assignee_name: string
+    assignee_name: string | null
 }

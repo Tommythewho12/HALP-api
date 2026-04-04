@@ -65,5 +65,5 @@ interface JobInterface {
     createJob(eventId: string, jobType: string): Promise<string>
     updateJob(jobId: string, userId: string | null): Promise<void>
     deleteJob(jobId: string): Promise<void>
-    getJobsByEventId(eventId: string): Promise<EnrichedJob[]>
+    getEnrichedJobsByEventId(eventId: string): Promise<EnrichedJob[]>
 }

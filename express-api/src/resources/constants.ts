@@ -1,6 +1,6 @@
-export enum JOB_ENUM {
-    // 'BALLER',
-    // 'CLEANER',
-    'SCORER',
-    'OFFICIAL'
+export enum JobTypes {
+    BALLER,
+    CLEANER,
+    SCORER,
+    OFFICIAL
 }

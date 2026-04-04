@@ -164,7 +164,7 @@ export class BetterSqlite3Repository implements RepositoryInterface {
         return toTeamOrUndefined(teamEntity);
     }
 
-    // TODO: pagination, filters, ...
+    // TODO: pagination, filters, ... 
     async getTeamsBySubscriberId(subscriberId: string): Promise<EnrichedTeam[]> {
         const res = db.prepare(`
             SELECT 
@@ -172,7 +172,7 @@ export class BetterSqlite3Repository implements RepositoryInterface {
                 CASE WHEN uxt.team_id IS NOT NULL THEN TRUE ELSE FALSE END AS is_subscribed,
                 CASE WHEN t.admin_id = @subscriberId THEN TRUE ELSE FALSE END AS is_admin
             FROM team t 
-            LEFT JOIN (SELECT * FROM userXteam WHERE user_id=@subscriberId) uxt 
+            LEFT JOIN (SELECT * FROM userXteam WHERE subscriber_id = @subscriberId) uxt 
                 ON t.id=uxt.team_id`
         ).all({ subscriberId }) as EnrichedTeamEntity[];
         return res.map(item => toEnrichedTeam(item));
@@ -200,7 +200,7 @@ export class BetterSqlite3Repository implements RepositoryInterface {
     async deleteSubscription(userId: string, teamId: string) {
         db.prepare(`
             DELETE FROM userXteam
-            WHERE user_id=? AND team_id=?`
+            WHERE subscriber_id=? AND team_id=?`
         ).run(userId, teamId);
     }
 
@@ -209,7 +209,7 @@ export class BetterSqlite3Repository implements RepositoryInterface {
             SELECT uxt.team_id, u.*
             FROM userXteam uxt
             JOIN user u
-            ON uxt.user_id=u.id
+            ON uxt.subscriber_id=u.id
             WHERE uxt.team_id=?`
         ).all(teamId) as SubscriptionAndUserEntity[];
 
@@ -265,11 +265,11 @@ export class BetterSqlite3Repository implements RepositoryInterface {
                 t.id AS team_id, t.name AS team_name, t.admin_id AS team_admin_id,
                 EXISTS (
                     SELECT 1 FROM userXevent
-                    WHERE event_id = e.id AND user_id = @userId
+                    WHERE event_id = e.id AND volunteer_id = @userId
                 ) is_volunteering,
                 EXISTS (
                     SELECT 1 FROM job
-                    WHERE event_id = e.id AND user_id = @userId
+                    WHERE event_id = e.id AND assignee_id = @userId
                 ) AS is_assigned
             FROM
                 user AS u
@@ -292,16 +292,16 @@ export class BetterSqlite3Repository implements RepositoryInterface {
         const res = db.prepare(`
             SELECT 
                 e.*,
-                CASE WHEN uxe.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_volunteering,
-                CASE WHEN j.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_assigned
+                CASE WHEN uxe.volunteer_id IS NOT NULL THEN 1 ELSE 0 END AS is_volunteering,
+                CASE WHEN j.assignee_id IS NOT NULL THEN 1 ELSE 0 END AS is_assigned
             FROM event e 
             INNER JOIN userXteam uxt 
                 ON e.team_id=uxt.team_id
             LEFT JOIN userXevent uxe
-                ON e.id = uxe.event_id AND uxe.user_id = uxt.user_id
+                ON e.id = uxe.event_id AND uxe.volunteer_id = uxt.subscriber_id
             LEFT JOIN job j
-                ON e.id = j.event_id AND j.user_id = uxt.user_id
-            WHERE e.id = ? AND uxt.user_id = ?
+                ON e.id = j.event_id AND j.assignee_id = uxt.subscriber_id
+            WHERE e.id = ? AND uxt.subscriber_id = ?
             LIMIT 1`
         ).get(eventId, userId) as EnrichedEventEntity | undefined;
         return toEnrichedEventOrUndefined(res);
@@ -314,21 +314,21 @@ export class BetterSqlite3Repository implements RepositoryInterface {
                 e.*,
                 EXISTS (
                     SELECT 1 FROM userXevent
-                    WHERE event_id = e.id AND user_id = @userId
+                    WHERE event_id = e.id AND volunteer_id = @userId
                 ) is_volunteering,
                 EXISTS (
                     SELECT 1 FROM job
-                    WHERE event_id = e.id AND user_id = @userId
+                    WHERE event_id = e.id AND assignee_id = @userId
                 ) AS is_assigned
             FROM event e
             WHERE
                 (EXISTS (
                     SELECT 1 FROM userXevent
-                    WHERE event_id = e.id AND user_id = @userId
+                    WHERE event_id = e.id AND volunteer_id = @userId
                 )
                 OR EXISTS (
                     SELECT 1 FROM userXteam
-                    WHERE team_id = e.team_id AND user_id = @userId
+                    WHERE team_id = e.team_id AND subscriber_id = @userId
                 )
                 OR EXISTS (
                     SELECT 1 FROM team
@@ -350,7 +350,7 @@ export class BetterSqlite3Repository implements RepositoryInterface {
     async deleteVolunteering(eventId: string, userId: string) {
         db.prepare(`
             DELETE FROM userXevent
-            WHERE user_id=? AND event_id=?`
+            WHERE volunteer_id=? AND event_id=?`
         ).run(userId, eventId);
     }
 
@@ -361,7 +361,7 @@ export class BetterSqlite3Repository implements RepositoryInterface {
                 u.*
             FROM userXevent uxe
             JOIN user u
-                ON u.id=uxe.user_id
+                ON u.id=uxe.volunteer_id
             WHERE uxe.event_id = ?`
         ).all(eventId) as VolunteeringAndUserEntity[];
         return res.map(item => toVolunteering(item));
@@ -372,7 +372,7 @@ export class BetterSqlite3Repository implements RepositoryInterface {
             SELECT EXISTS (
                 SELECT 1
                 FROM userXevent
-                WHERE event_id=? AND user_id=?) as res`
+                WHERE event_id=? AND volunteer_id=?) as res`
         ).get(eventId, userId));
         return typeof res === 'number' && res === 1;
     }
@@ -382,7 +382,7 @@ export class BetterSqlite3Repository implements RepositoryInterface {
             SELECT EXISTS (
                 SELECT 1
                 FROM job
-                WHERE event_id=? AND user_id=?) as res`
+                WHERE event_id=? AND assignee_id=?) as res`
         ).get(eventId, userId));
         return typeof res === 'number' && res === 1;
     }
@@ -401,13 +401,13 @@ export class BetterSqlite3Repository implements RepositoryInterface {
         if (typeof userId === 'string') {
             db.prepare(`
                 UPDATE job
-                SET user_id=?
+                SET assignee_id=?
                 WHERE id=?`
             ).run(userId, jobId);
         } else {
             db.prepare(`
                 UPDATE job
-                SET user_id=NULL
+                SET assignee_id=NULL
                 WHERE id=?`
             ).run(jobId);
         }
@@ -420,17 +420,17 @@ export class BetterSqlite3Repository implements RepositoryInterface {
         ).run(jobId);
     }
 
-    async getJobsByEventId(eventId: string) {
+    async getEnrichedJobsByEventId(eventId: string) {
         const res = db.prepare(`
             SELECT
                 j.*,
-                u.display_name
+                u.display_name as assignee_name
             FROM
                 job j
             LEFT JOIN
                 user u
             ON
-                u.id = j.user_id
+                u.id = j.assignee_id
             WHERE
                 j.event_id = @eventId`
         ).all({ eventId }) as JobAndUsernameEntity[];

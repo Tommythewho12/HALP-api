@@ -1,7 +1,7 @@
 import express, { type Request } from 'express';
 
 import { repository } from '../repositories/repository.js';
-import { JOB_ENUM } from '../resources/constants.js';
+import { JobTypes } from '../resources/constants.js';
 import type { Event } from '../domain/models/Event.js';
 import { errorJson, successJson } from './api-utils.js';
 
@@ -32,7 +32,9 @@ router.post('/', async (req: Request<{ teamId: string }, {}, CreateEventBody>, r
     }
 
     for (const [job, count] of Object.entries(newJobs)) {
-        if (typeof job !== 'string' || !(typeof JOB_ENUM).includes(job.toUpperCase())) {
+        console.debug('[events_admin] job, count: ', job.toUpperCase(), count);
+        console.debug('[events_admin] typeof JOB_ENUM: ', JobTypes, typeof JobTypes);
+        if (typeof job !== 'string' || !(job.toUpperCase() in JobTypes)) {
             return res.status(400).send(errorJson('invalid job type'));
         } else if (typeof count !== 'number' || count < 0) {
             return res.status(400).send(errorJson('invalid number of jobs'));
@@ -54,16 +56,17 @@ router.post('/', async (req: Request<{ teamId: string }, {}, CreateEventBody>, r
         }
     }
 
+    // TODO create DTO definition
     const newEvent = {
         id: eventId,
-        team_id: req.params.teamId,
+        teamId: req.params.teamId,
         name: eventName,
         description: description,
-        start_datetime: dateTime,
+        startDatetime: dateTime,
         jobs: newJobs,
         complete: false,
-        is_volunteering: false,
-        is_assigned: false
+        isVolunteering: false,
+        isAssigned: false
     }
     return res.status(202).json(newEvent);
 });
@@ -87,7 +90,7 @@ router.get('/:eventId', async (req: Request<{ teamId: string, eventId: string },
         return;
     }
     const volunteers = await repository.getVolunteeringsByEventId(req.params.eventId);
-    const jobs = await repository.getJobsByEventId(req.params.eventId);
+    const jobs = await repository.getEnrichedJobsByEventId(req.params.eventId);
 
     res.status(200).json({ ...event, volunteers, jobs });
 });

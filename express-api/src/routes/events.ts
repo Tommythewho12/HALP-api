@@ -31,28 +31,28 @@ router.get('/:eventId', async (req, res) => {
         if (!team)
             throw new Error('unable to find team');
         const admin = await repository.getUserById(team.adminId);
-        const jobs = await repository.getJobsByEventId(req.params.eventId);
+        const jobs = await repository.getEnrichedJobsByEventId(req.params.eventId);
         const isAssigned = enrichedEvent.isAssigned;
         const result = {
             admin: {
                 id: admin?.id,
-                display_name: admin?.displayName,
+                displayName: admin?.displayName,
                 email: admin?.email
             },
             team: {
                 id: team?.id,
                 name: team?.name,
-                amdin_id: team?.adminId
+                adminId: team?.adminId
             },
             event: {
                 id: enrichedEvent?.id,
+                teamId: enrichedEvent?.teamId,
                 name: enrichedEvent?.name,
                 description: enrichedEvent?.description,
-                start_datetime: enrichedEvent?.startDatetime,
-                team_id: enrichedEvent?.teamId,
+                startDatetime: enrichedEvent?.startDatetime,
                 complete: enrichedEvent?.complete,
-                is_volunteering: enrichedEvent?.isVolunteering,
-                is_assigned: isAssigned
+                isVolunteering: enrichedEvent?.isVolunteering,
+                isAssigned: isAssigned
             },
             jobs: jobs.map(j => ({
                 id: j.id,

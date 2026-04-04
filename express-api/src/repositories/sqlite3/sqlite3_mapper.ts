@@ -2,7 +2,7 @@ import type { EnrichedEvent, Event, Volunteering } from "../../domain/models/Eve
 import type { EnrichedJob, Job } from "../../domain/models/Job.js";
 import type { EnrichedTeam, Subscription, Team } from "../../domain/models/Team.js";
 import type User from "../../domain/models/User.js";
-import { JOB_ENUM } from "../../resources/constants.js";
+import { JobTypes } from "../../resources/constants.js";
 import type { EnrichedEventEntity, EnrichedTeamEntity, EventEntity, JobAndUsernameEntity, JobEntity, SubscriptionAndUserEntity, TeamEntity, UserEntity, VolunteeringAndUserEntity } from "./sqlite3_entities.js";
 
 function isTeamEntity(input: any): input is TeamEntity {
@@ -11,7 +11,7 @@ function isTeamEntity(input: any): input is TeamEntity {
 
 export function toTeam(input: any): Team {
     if (!isTeamEntity(input))
-        throw new Error('cannot parse given input to type Team');
+        throw new Error('cannot parse given input to type Team', input);
     return {
         id: String(input.id),
         name: input.name,
@@ -38,7 +38,7 @@ function isEnrichedTeamEntity(input: any): input is EnrichedTeamEntity {
 
 export function toEnrichedTeam(input: any): EnrichedTeam {
     if (!isEnrichedTeamEntity(input))
-        throw new Error('cannot parse given input to type EnrichedTeam');
+        throw new Error('cannot parse given input to type EnrichedTeam', input);
     return {
         id: String(input.id),
         name: input.name,
@@ -62,7 +62,7 @@ function isUserEntity(input: any): input is UserEntity {
 
 export function toUser(input: any): User {
     if (!isUserEntity(input))
-        throw new Error('cannot parse given input to type User');
+        throw new Error('cannot parse given input to type User', input);
     return {
         id: String(input.id),
         displayName: input.display_name,
@@ -76,7 +76,7 @@ function isSubscriptionAndUserEntity(input: any): input is SubscriptionAndUserEn
 
 export function toSubscription(input: any): Subscription {
     if (!isSubscriptionAndUserEntity(input))
-        throw new Error('cannot parse given input to type Subscription');
+        throw new Error('cannot parse given input to type Subscription', input);
     return {
         teamId: String(input.team_id),
         user: toUser(input)
@@ -89,7 +89,7 @@ function isEventEntity(input: any): input is EventEntity {
 
 export function toEvent(input: any): Event {
     if (!isEventEntity(input))
-        throw new Error('cannot parse given input to type Event');
+        throw new Error('cannot parse given input to type Event', input);
     return {
         id: String(input.id),
         name: input.name,
@@ -114,7 +114,7 @@ function isEnrichedEventEntity(input: any): input is EnrichedEventEntity {
 
 export function toEnrichedEvent(input: any): EnrichedEvent {
     if (!isEnrichedEventEntity(input))
-        throw new Error('cannot parse given input to type EnrichedEvent');
+        throw new Error('cannot parse given input to type EnrichedEvent', input);
     const event = toEvent(input);
     return {
         ...event,
@@ -137,39 +137,46 @@ function isVolunteeringAndUserEntity(input: any): input is VolunteeringAndUserEn
 
 export function toVolunteering(input: any): Volunteering {
     if (!isVolunteeringAndUserEntity(input))
-        throw new Error('cannot parse given input to type Volunteering');
+        throw new Error('cannot parse given input to type Volunteering', input);
     return {
         eventId: String(input.event_id),
         user: toUser(input)
     }
 }
 
-function isJobEnum(input: any): input is JOB_ENUM {
-    return input in JOB_ENUM;
+function isJobTypeString(input: any): input is keyof typeof JobTypes {
+    return Object.keys(JobTypes).includes(input.toUpperCase());
+    // return input.toUpperCase() in JobTypes;
+}
+
+function toJobType(input: any): JobTypes {
+    if (!isJobTypeString(input))
+        throw new Error('cannot parse given input to type JobTypes', input);
+    return JobTypes[input];
 }
 
 function isJobEntity(input: any): input is JobEntity {
-    return typeof input === 'object' && 'id' in input && typeof input.id === 'number' && 'event_id' in input && typeof input.event_id === 'number' && 'type' in input && isJobEnum(input.type) && 'assignee_id' in input && typeof input.assignee_id === 'number';
+    return typeof input === 'object' && 'id' in input && typeof input.id === 'number' && 'event_id' in input && typeof input.event_id === 'number' && /*'type' in input && isJobTypeString(input.type) &&*/ 'assignee_id' in input && (input.assignee_id === null || typeof input.assignee_id === 'number');
 }
 
 export function toJob(input: any): Job {
     if (!isJobEntity(input))
-        throw new Error('cannot parse given input to type Job');
+        throw new Error('cannot parse given input to type Job', input);
     return {
         id: String(input.id),
         eventId: String(input.event_id),
-        type: input.type,
+        type: toJobType(input.type),
         assigneeId: String(input.assignee_id)
     }
 }
 
 function isJobAndUsernameEntity(input: any): input is JobAndUsernameEntity {
-    return isJobEntity(input) && 'assignee_name' in input && typeof input.assignee_name === 'number';
+    return isJobEntity(input) && 'assignee_name' in input && (input.assignee_name === null || typeof input.assignee_name === 'number');
 }
 
 export function toEnrichedJob(input: any): EnrichedJob {
     if (!isJobAndUsernameEntity(input))
-        throw new Error('cannot parse given input to type EnrichedJob');
+        throw new Error('cannot parse given input to type EnrichedJob', input);
     const job = toJob(input);
     return {
         ...job,
