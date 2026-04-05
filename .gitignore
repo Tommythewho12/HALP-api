@@ -1,3 +1,6 @@
+# ignore additional files using core.excludesFile
+# https://git-scm.com/docs/gitignore
+
 # npm
 node_modules
 package-lock.json
@@ -5,7 +8,7 @@ npm-shrinkwrap.json
 *.log
 *.gz
 
-# typescript
+# typescript target
 dist/
 
 # Coveralls
@@ -15,8 +18,8 @@ coverage
 # Benchmarking
 benchmarks/graphs
 
-# ignore additional files using core.excludesFile
-# https://git-scm.com/docs/gitignore
+# generated folders
+generated/
 
 # additional ignores
 *.db
