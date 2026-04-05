@@ -1,21 +1,23 @@
-import express, { type Request } from 'express';
+import express from 'express';
 
 import { repository } from '../../repositories/repository-factory.js';
 import { JobTypes } from '../../resources/constants.js';
-import type { Event, EventCreator } from '../../domain/models/Event.js';
-import { errorJson, successJson } from './api-utils.js';
-
-type CreateEventBody = {
-    eventName: string
-    description: string
-    dateTime: number
-    jobs: { scorer: number, official: number }
-}
+import type { EventCreator } from '../../domain/models/Event.js';
+import { errorJson, successJson, type RequestUserEnriched } from './api-utils.js';
+import type { components } from '../../../../api-spec/generated/schema.js';
 
 const router = express.Router({ mergeParams: true });
 
-router.post('/', async (req: Request<{ teamId: string }, {}, CreateEventBody>, res) => {
-    const eventName = req.body.eventName ? req.body.eventName.trim() : null;
+// TODO add typing!
+router.post<
+    '/',
+    any,
+    components['schemas']['DefaultSuccessResponseSchema'] | components['schemas']['DefaultErrorResponseSchema'],
+    components['schemas']['EventCreateRequestSchema'] & RequestUserEnriched,
+    any,
+    any
+>('/', async (req, res) => {
+    const eventName = req.body.name ? req.body.name.trim() : null;
     if (eventName === null) {
         return res.status(400).send(errorJson('event name must not be emtpy'));
     }
@@ -55,8 +57,9 @@ router.post('/', async (req: Request<{ teamId: string }, {}, CreateEventBody>, r
         }
     }
 
-    // TODO create DTO definition
-    const newEvent = {
+    return res.status(201).json(successJson('new event created'));
+    // TODO return actual object instead
+    /*const newEvent = {
         id: eventId,
         teamId: req.params.teamId,
         name: eventName,
@@ -67,55 +70,98 @@ router.post('/', async (req: Request<{ teamId: string }, {}, CreateEventBody>, r
         isVolunteering: false,
         isAssigned: false
     }
-    return res.status(202).json(newEvent);
+
+    return res.status(201).json(newEvent);*/
 });
 
-router.delete('/:eventId', async (req: Request<{ teamId: string, eventId: string }, {}, any>, res) => {
+router.delete<
+    '/:eventId',
+    any,
+    components['schemas']['DefaultSuccessResponseSchema'] | components['schemas']['DefaultErrorResponseSchema'],
+    any & RequestUserEnriched,
+    any,
+    any
+>('/:eventId', async (req, res) => {
     await repository.deleteEvent(req.params.eventId);
     return res.status(200).send(successJson('event deleted'));
 });
 
-// never used
-/*
-router.get('/', async (req: Request<{ teamId: string }, {}, any>, res) => {
-    const events = await repository.getEventsByTeamId(req.params.teamId);
-    return res.status(200).json(events);
-});*/
-
 // TODO add router.use to check if event is part of team and/or user(admin)
 
-router.get('/:eventId', async (req: Request<{ teamId: string, eventId: string }, {}, any>, res) => {
+router.get<
+    '/:eventId',
+    any,
+    components['schemas']['EventManagedSchema'] | components['schemas']['DefaultErrorResponseSchema'],
+    any & RequestUserEnriched,
+    any,
+    any
+>('/:eventId', async (req, res) => {
     const event = await repository.getEvent(req.params.eventId);
     if (!event) {
-        res.status(404).json({ error: 'event not found' });
-        return;
+        return res.status(404).json(errorJson('event not found'));
     }
     const volunteers = await repository.getVolunteeringsByEventId(req.params.eventId);
     const jobs = await repository.getEnrichedJobsByEventId(req.params.eventId);
+    const assembledResult: components['schemas']['EventManagedSchema'] = {
+        event: event,
+        volunteers: volunteers,
+        jobs: jobs.map(job => ({
+            id: job.id,
+            eventId: job.eventId,
+            type: JobTypes[job.type],
+            assignee: {
+                ...(job.assigneeId != null && { id: job.assigneeId }),
+                ...(job.assigneeName != null && { displayName: job.assigneeName }),
+                ...(job.assigneeEmail != null && { email: job.assigneeEmail }),
+            }
+        }))
+    }
 
-    res.status(200).json({ event: event, volunteers: volunteers, jobs: jobs });
+    return res.status(200).json(assembledResult);
 });
 
 
-router.post('/:eventId/jobs', async (req, res) => {
+router.post<
+    '/:eventId/jobs',
+    any,
+    components['schemas']['DefaultSuccessResponseSchema'] | components['schemas']['DefaultErrorResponseSchema'],
+    components['schemas']['JobCreateRequestSchema'] & RequestUserEnriched,
+    any,
+    any
+>('/:eventId/jobs', async (req, res) => {
     // TODO: validate jobsType
 
     try {
         await repository.createJob(req.params.eventId, req.body.jobType);
-        res.status(202).send(successJson('job added'));
+        // TODO return actual created object
+        return res.status(201).send(successJson('job added'));
     } catch (err) {
         console.error('POST:/auth/teams/:teamId/events/:eventId/jobs', err);
-        res.status(500).send(errorJson('something went wrong'));
+        return res.status(500).send(errorJson('something went wrong'));
     }
 });
 
-router.delete('/:eventId/jobs/:jobId', async (req, res) => {
+router.delete<
+    '/:eventId/jobs/:jobId',
+    any,
+    components['schemas']['DefaultSuccessResponseSchema'] | components['schemas']['DefaultErrorResponseSchema'],
+    any & RequestUserEnriched,
+    any,
+    any
+>('/:eventId/jobs/:jobId', async (req, res) => {
     await repository.deleteJob(req.params.jobId);
     res.status(200).send(successJson('job removed'));
 });
 
 // assign/unassign user to job
-router.patch('/:eventId/jobs/:jobId', async (req, res) => {
+router.patch<
+    '/:eventId/jobs/:jobId',
+    any,
+    components['schemas']['DefaultSuccessResponseSchema'] | components['schemas']['DefaultErrorResponseSchema'],
+    components['schemas']['JobReassignRequestSchema'] & RequestUserEnriched,
+    any,
+    any
+>('/:eventId/jobs/:jobId', async (req, res) => {
     // when adding check first if user is volunteering for event
     if (req.body.volunteerId !== undefined && req.body.volunteerId !== null) {
         const isVolunteering = await repository.isUserVolunteering(req.params.eventId, req.body.volunteerId);
@@ -128,7 +174,8 @@ router.patch('/:eventId/jobs/:jobId', async (req, res) => {
 
     // then add volunteer to job
     try {
-        await repository.updateJob(req.params.jobId, req.body.volunteerId);
+        const volunteerIdParsed = req.body.volunteerId != undefined ? req.body.volunteerId : null;
+        await repository.updateJob(req.params.jobId, volunteerIdParsed);
         if (req.body.volunteerId)
             res.status(200).send(successJson('volunteer assigned to job'));
         else

@@ -3,7 +3,7 @@ import type { JobEnriched, Job } from "../../domain/models/Job.js";
 import type { TeamEnriched, Subscription, Team } from "../../domain/models/Team.js";
 import type { User } from "../../domain/models/User.js";
 import { JobTypes } from "../../resources/constants.js";
-import type { EventEnrichedEntity, TeamEnrichedEntity, EventEntity, JobAndUsernameEntity, JobEntity, SubscriptionAndUserEntity, TeamEntity, UserEntity, VolunteeringAndUserEntity } from "./sqlite3_entities.js";
+import type { EventEnrichedEntity, TeamEnrichedEntity, EventEntity, JobEntity, SubscriptionAndUserEntity, TeamEntity, UserEntity, VolunteeringAndUserEntity, JobAndUserEntity } from "./sqlite3_entities.js";
 
 function isTeamEntity(input: any): input is TeamEntity {
     return typeof input === 'object' && 'id' in input && typeof input.id === 'number' && 'name' in input && typeof input.name === 'string' && 'admin_id' in input && typeof input.admin_id === 'number';
@@ -170,16 +170,17 @@ export function toJob(input: any): Job {
     }
 }
 
-function isJobAndUsernameEntity(input: any): input is JobAndUsernameEntity {
-    return isJobEntity(input) && 'assignee_name' in input && (input.assignee_name === null || typeof input.assignee_name === 'number');
+function isJobAndUserEntity(input: any): input is JobAndUserEntity {
+    return isJobEntity(input) && 'assignee_name' in input && (input.assignee_name === null || typeof input.assignee_name === 'string') && 'assignee_email' in input && (input.assignee_email === null || typeof input.assignee_email === 'string');
 }
 
 export function toEnrichedJob(input: any): JobEnriched {
-    if (!isJobAndUsernameEntity(input))
+    if (!isJobAndUserEntity(input))
         throw new Error('cannot parse given input to type EnrichedJob', input);
     const job = toJob(input);
     return {
         ...job,
-        assigneeName: String(input.assignee_name)
+        assigneeName: input.assignee_name,
+        assigneeEmail: input.assignee_email
     }
 }

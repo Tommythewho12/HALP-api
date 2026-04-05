@@ -60,6 +60,7 @@ export interface JobEntity {
     assignee_id: number | null
 }
 
-export interface JobAndUsernameEntity extends JobEntity {
+export interface JobAndUserEntity extends JobEntity {
     assignee_name: string | null
+    assignee_email: string | null
 }

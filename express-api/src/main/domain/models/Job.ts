@@ -4,9 +4,10 @@ export interface Job {
     id: string
     eventId: string
     type: JobTypes
-    assigneeId: string
+    assigneeId: string | null
 }
 
 export interface JobEnriched extends Job {
-    assigneeName: string
+    assigneeName: string | null
+    assigneeEmail: string | null
 }

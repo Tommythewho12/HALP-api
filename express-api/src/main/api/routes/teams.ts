@@ -30,7 +30,7 @@ router.post<
             adminId: req.body.userId
         }
         const newTeamId = await repository.createTeam(team);
-        // TODO return new Item
+        // TODO return actual object instead
         /*
         const newTeam = {
             id: newTeamId,
@@ -112,9 +112,11 @@ router.post<
         team_id: req.params.teamId,
         user_id: req.body.userId
     };
+    // TODO return actually created object
     try {
         await repository.createSubscription(req.body.userId, req.params.teamId);
         // return res.status(200).json(resultJson);
+        // TODO return actually created object
         return res.status(200).json(successJson('subscribed successfully'));
     } catch (err) {
         if (err instanceof SqliteError && err.code === 'SQLITE_CONSTRAINT_PRIMARYKEY') {
@@ -141,6 +143,7 @@ router.delete<
             team_id: req.params.teamId,
             user_id: req.body.userId
         }
+        // TODO return actually created object
         return res.status(200).json(successJson('unsubscribed successfully'));
     } catch (err) {
         return res.status(500).json(errorJson('whoopsie'));

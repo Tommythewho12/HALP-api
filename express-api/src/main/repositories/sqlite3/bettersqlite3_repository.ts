@@ -6,13 +6,13 @@ import type { User } from '../../domain/models/User.js';
 import type { RepositoryInterface } from '../repository-interface.js';
 import type { TeamEnriched, Subscription, Team } from '../../domain/models/Team.js';
 import type { EventEnriched, Event } from '../../domain/models/Event.js';
-import type { EventEnrichedEntity, TeamEnrichedEntity, EventEntity, JobAndUsernameEntity, SubscriptionAndUserEntity, TeamEntity, UserEntity, VolunteeringAndUserEntity } from './sqlite3_entities.js';
+import type { EventEnrichedEntity, TeamEnrichedEntity, EventEntity, SubscriptionAndUserEntity, TeamEntity, UserEntity, VolunteeringAndUserEntity, JobAndUserEntity } from './sqlite3_entities.js';
 import { toEnrichedEvent, toEnrichedEventOrUndefined, toEnrichedJob, toEnrichedTeam, toEvent, toEventOrUndefined, toSubscription, toTeamOrUndefined, toEnrichedVolunteering } from './sqlite3_mapper.js';
 import type { UserCreator } from '../../domain/models/User.js';
 
 // TODO: move path to .env
 const SQLITE_PATH = 'dist/db';
-const INIT_SQL_PATH = '../../resources/db/init_db.sql';
+const INIT_SQL_PATH = '../../resources/init_db.sql';
 const EXPECTED_TABLES = [
     "user",
     "team",
@@ -424,7 +424,7 @@ export class BetterSqlite3Repository implements RepositoryInterface {
         const res = db.prepare(`
             SELECT
                 j.*,
-                u.display_name as assignee_name
+                u.*
             FROM
                 job j
             LEFT JOIN
@@ -433,7 +433,7 @@ export class BetterSqlite3Repository implements RepositoryInterface {
                 u.id = j.assignee_id
             WHERE
                 j.event_id = @eventId`
-        ).all({ eventId }) as JobAndUsernameEntity[];
+        ).all({ eventId }) as JobAndUserEntity[];
         return res.map(item => toEnrichedJob(item));
     }
 }

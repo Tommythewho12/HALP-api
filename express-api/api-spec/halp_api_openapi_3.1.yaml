@@ -564,6 +564,15 @@ components:
                 - id
                 - displayName
                 - email
+        UserOptionalSchema:
+            type: object
+            properties:
+                id:
+                    type: string
+                displayName:
+                    type: string
+                email:
+                    type: string
         TeamEnrichedSchema:
             type: object
             properties:
@@ -597,6 +606,8 @@ components:
                     minItems: 1
                     items:
                         $ref: "#/components/schemas/JobEnrichedSchema"
+            required:
+                - event
         EventsResponseSchema:
             type: object
             properties:
@@ -673,6 +684,10 @@ components:
                     type: array
                     items:
                         $ref: "#/components/schemas/JobEnrichedSchema"
+            required:
+                - admin
+                - team
+                - event
         VolunteeringEnrichedSchema:
             type: object
             properties:
@@ -701,7 +716,7 @@ components:
                 type:
                     type: string
                 assignee:
-                    $ref: "#/components/schemas/UserSchema"
+                    $ref: "#/components/schemas/UserOptionalSchema"
             required:
                 - id
                 - eventId

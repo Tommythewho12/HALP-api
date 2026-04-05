@@ -69,7 +69,8 @@ router.post<
         }
         await repository.createUser(newUser, passwordHash);
         console.info('User created: displayName [' + displayName + '], email [' + email + ']');
-        return res.status(202).send(successJson('User successfully created'));
+        return res.status(201).send(successJson('User successfully created'));
+        // TODO return actual object instead
     } catch (err) {
         // example for sqlite error handling
         if (err instanceof SqliteError) {
