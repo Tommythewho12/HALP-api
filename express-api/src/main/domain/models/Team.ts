@@ -1,9 +1,12 @@
-import type User from "./User.js"
+import type { User } from "./User.js"
 
-export interface Team {
-    id: string | null
+export interface TeamCreator {
     name: string
     adminId: string
+}
+
+export interface Team extends TeamCreator {
+    id: string
 }
 
 export interface TeamEnriched extends Team {

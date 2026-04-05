@@ -1,5 +1,8 @@
-export default interface User {
-    id: string | null
+export interface UserCreator {
     displayName: string
     email: string
+}
+
+export interface User extends UserCreator {
+    id: string
 }

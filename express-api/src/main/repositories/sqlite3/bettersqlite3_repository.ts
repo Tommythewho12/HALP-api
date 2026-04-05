@@ -1,13 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import SqliteDb, { type Database } from 'better-sqlite3';
-import { getSingleResult, getListResult } from '../db-utils.js';
-import type User from '../../domain/models/User.js';
-import type { RepositoryInterface } from '../../domain/RepositoryInterface.js';
+import { getSingleResult, getListResult } from '../repository-utils.js';
+import type { User } from '../../domain/models/User.js';
+import type { RepositoryInterface } from '../repository-interface.js';
 import type { TeamEnriched, Subscription, Team } from '../../domain/models/Team.js';
 import type { EventEnriched, Event } from '../../domain/models/Event.js';
 import type { EventEnrichedEntity, TeamEnrichedEntity, EventEntity, JobAndUsernameEntity, SubscriptionAndUserEntity, TeamEntity, UserEntity, VolunteeringAndUserEntity } from './sqlite3_entities.js';
 import { toEnrichedEvent, toEnrichedEventOrUndefined, toEnrichedJob, toEnrichedTeam, toEvent, toEventOrUndefined, toSubscription, toTeamOrUndefined, toEnrichedVolunteering } from './sqlite3_mapper.js';
+import type { UserCreator } from '../../domain/models/User.js';
 
 // TODO: move path to .env
 const SQLITE_PATH = 'dist/db';
@@ -56,7 +57,7 @@ export class BetterSqlite3Repository implements RepositoryInterface {
     // TODO
     // private db2 = new SqliteDb(SQLITE_PATH + '/halp.db');
 
-    async createUser(user: User, password: string) {
+    async createUser(user: UserCreator, password: string) {
         const stmt = db.prepare(`INSERT INTO user (display_name, email) VALUES (?, ?)`);
         const newUserId = stmt.run(user.displayName, user.email).lastInsertRowid;
         db.prepare(`INSERT INTO auth (id, password) VALUES (?, ?)`).run(newUserId, password);

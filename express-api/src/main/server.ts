@@ -4,8 +4,8 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import 'dotenv/config';
 
-import router from "./routes/index.js";
-import authRoute from "./routes/auth.js";
+import router from "./api/routes/index.js";
+import authRoute from "./api/routes/auth.js";
 
 const PORT = Number(process.env.PORT) || 3000;
 

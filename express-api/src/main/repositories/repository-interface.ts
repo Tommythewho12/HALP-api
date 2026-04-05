@@ -1,7 +1,7 @@
-import type User from "./models/User.js"
-import type { Team, TeamEnriched, Subscription } from "./models/Team.js"
-import type { Event, EventEnriched, VolunteeringEnriched } from "./models/Event.js"
-import type { JobEnriched } from "./models/Job.js"
+import type { User, UserCreator } from "../domain/models/User.js"
+import type { Team, TeamEnriched, Subscription, TeamCreator } from "../domain/models/Team.js"
+import type { Event, EventCreator, EventEnriched, VolunteeringEnriched } from "../domain/models/Event.js"
+import type { JobEnriched } from "../domain/models/Job.js"
 
 export interface RepositoryInterface extends
     UserInterface,
@@ -14,7 +14,7 @@ export interface RepositoryInterface extends
 }
 
 interface UserInterface {
-    createUser(user: User, password: string): Promise<string>
+    createUser(user: UserCreator, password: string): Promise<string>
     // TODO deleteUser aka delete own account
     getUserById(userId: string): Promise<User | undefined>
     getUserByEmail(email: string): Promise<User | undefined>
@@ -31,7 +31,7 @@ interface AuthInterface {
 }
 
 interface TeamInterface {
-    createTeam(team: Team): Promise<string>
+    createTeam(team: TeamCreator): Promise<string>
     deleteTeam(teamId: string): Promise<void>
     getTeam(teamId: string): Promise<Team | undefined>
     getTeamsBySubscriberId(subscriberId: string): Promise<TeamEnriched[]>
@@ -45,7 +45,7 @@ interface SubscriptionInterface {
 }
 
 interface EventInterface {
-    createEvent(event: Event): Promise<string>
+    createEvent(event: EventCreator): Promise<string>
     deleteEvent(eventId: string): Promise<void>
     getEvent(eventId: string): Promise<Event | undefined>
     getEventsByTeamId(teamId: string): Promise<Event[]>

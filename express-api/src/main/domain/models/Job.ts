@@ -1,7 +1,7 @@
 import { JobTypes } from "../../resources/constants.js"
 
 export interface Job {
-    id: string | null
+    id: string
     eventId: string
     type: JobTypes
     assigneeId: string

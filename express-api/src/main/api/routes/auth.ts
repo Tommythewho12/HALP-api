@@ -4,11 +4,13 @@ import bcrypt from 'bcrypt'; // TODO: check alternatives; npm marks deprecated
 
 const SALT = Number(process.env.SALT) | 10;
 
-import { repository } from '../repositories/repository.js';
+import { repository } from '../../repositories/repository-factory.js';
 
 import usersRoute from './users.js';
 import teamsRoute from './teams.js';
 import eventsRoute from './events.js';
+import type { components } from '../../../../api-spec/generated/schema.js';
+import { errorJson, successJson, type RequestUserEnriched } from './api-utils.js';
 
 const ACCESS_TOKEN_SECRET = 'this-is-my-super-secret-secret-that-noone-will-ever-find-out'; // TODO: place in secret file or so?
 
@@ -26,8 +28,7 @@ router.use('/', (req, res, next) => {
                 const verified = jwt.verify(accessToken, ACCESS_TOKEN_SECRET) as { id: string };
                 if (verified && verified.id) {
                     req.body.userId = verified.id;
-                    next();
-                    return; // TODO: check if cleaner way exists
+                    return next();
                 } else {
                     console.info('Access denied: invalid access token');
                     errorMessage = 'your session has expired. you must log in again';
@@ -42,34 +43,37 @@ router.use('/', (req, res, next) => {
         console.info('Access denied: missing access token');
         errorMessage = 'you must first log in in order to access this resource'
     }
-    res.status(401).send(errorMessage);
+    return res.status(401).send(errorJson(errorMessage));
 });
 
-router.patch('/change-password', async (req, res) => {
+router.patch<
+    '/change-password',
+    any,
+    components['schemas']['DefaultSuccessResponseSchema'] | components['schemas']['DefaultErrorResponseSchema'],
+    components['schemas']['PasswordChangeRequestSchema'] & RequestUserEnriched,
+    any,
+    any
+>('/change-password', async (req, res) => {
     const oldPassword = req.body.oldPassword || '';
     const newPassword = req.body.newPassword || '';
 
     const oldPasswordHash = await repository.getPassword(req.body.userId);
     if (!oldPassword || !newPassword || typeof oldPasswordHash !== 'string') {
         console.warn('updating password failed: missing value for old or new password');
-        return res.status(400).send('password cannot be empty');
+        return res.status(400).send(errorJson('password cannot be empty'));
     } else if (!bcrypt.compareSync(oldPassword, oldPasswordHash)) {
         console.warn('updating password failed: old password was wrong');
-        return res.status(401).send('invalid credentials');
+        return res.status(401).send(errorJson('invalid credentials'));
     } else if (bcrypt.compareSync(newPassword, oldPasswordHash)) {
         console.warn('updating password failed: new password equal to old password');
-        return res.status(400).send('you must select a new password');
+        return res.status(400).send(errorJson('you must select a new password'));
     }
 
     // TODO: add password requirements, also in /signup
     await repository.updatePasswordByUserId(req.body.userId, bcrypt.hashSync(newPassword, SALT));
 
     // TODO: send email to inform about change-password
-    return res.status(200).send('password changed');
-});
-
-router.get('/secureTest', (_, res) => {
-    return res.status(200).send('send nudes!');
+    return res.status(200).send(successJson('password changed'));
 });
 
 router.use('/user', usersRoute);

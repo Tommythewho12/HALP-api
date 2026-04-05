@@ -1,8 +1,8 @@
 import express, { type Request } from 'express';
 
-import { repository } from '../repositories/repository.js';
-import { JobTypes } from '../resources/constants.js';
-import type { Event } from '../domain/models/Event.js';
+import { repository } from '../../repositories/repository-factory.js';
+import { JobTypes } from '../../resources/constants.js';
+import type { Event, EventCreator } from '../../domain/models/Event.js';
 import { errorJson, successJson } from './api-utils.js';
 
 type CreateEventBody = {
@@ -41,8 +41,7 @@ router.post('/', async (req: Request<{ teamId: string }, {}, CreateEventBody>, r
         }
     }
 
-    const event: Event = {
-        id: null,
+    const event: EventCreator = {
         name: eventName,
         description: description,
         startDatetime: dateTime,

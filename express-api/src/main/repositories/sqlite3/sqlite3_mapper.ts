@@ -1,7 +1,7 @@
 import type { EventEnriched, VolunteeringEnriched, Event } from "../../domain/models/Event.js";
 import type { JobEnriched, Job } from "../../domain/models/Job.js";
 import type { TeamEnriched, Subscription, Team } from "../../domain/models/Team.js";
-import type User from "../../domain/models/User.js";
+import type { User } from "../../domain/models/User.js";
 import { JobTypes } from "../../resources/constants.js";
 import type { EventEnrichedEntity, TeamEnrichedEntity, EventEntity, JobAndUsernameEntity, JobEntity, SubscriptionAndUserEntity, TeamEntity, UserEntity, VolunteeringAndUserEntity } from "./sqlite3_entities.js";
 

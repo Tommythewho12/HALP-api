@@ -1,4 +1,4 @@
-import type { RepositoryInterface } from "../domain/RepositoryInterface.js";
+import type { RepositoryInterface } from "./repository-interface.js";
 import { BetterSqlite3Repository } from "./sqlite3/bettersqlite3_repository.js";
 
 function createRepository(): RepositoryInterface {

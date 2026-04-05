@@ -1,12 +1,15 @@
-import type User from "./User.js"
+import type { User } from "./User.js"
 
-export interface Event {
-    id: string | null
+export interface EventCreator {
     name: string
     description: string
     startDatetime: number // epoch in seconds
     teamId: string
     complete: boolean
+}
+
+export interface Event extends EventCreator {
+    id: string
 }
 
 export interface EventEnriched extends Event {

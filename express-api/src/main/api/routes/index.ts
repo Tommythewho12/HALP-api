@@ -3,10 +3,11 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt'; // TODO: check alternatives; npm marks deprecated
 import { SqliteError } from 'better-sqlite3';
 
-import { repository } from '../repositories/repository.js';
+import { repository } from '../../repositories/repository-factory.js';
 import { decode } from 'node:punycode';
-import type User from '../domain/models/User.js';
+import type { UserCreator } from '../../domain/models/User.js';
 import { errorJson, successJson } from './api-utils.js';
+import type { components } from '../../../../api-spec/generated/schema.js';
 
 // TODO move to env/config file
 const SALT = Number(process.env.SALT) || 10;
@@ -44,18 +45,25 @@ const createRefreshToken = async (userId: string) => {
 
 const router = express.Router({ mergeParams: true });
 
-router.post('/signup', async (req, res) => {
-    // TODO set random password first and force user to change on first login
-    // TODO research why const displayName = req.body.displayName?.trim() ?? null; does not evaluate to null if ''
-    const displayName = req.body.displayName ? req.body.displayName.trim() : null;
-    const email = req.body.email ? req.body.email.trim() : null;
-    const password = req.body.password ?? null;
-    // TODO: add password requirements also in /auth/change-password
-
-    const passwordHash = bcrypt.hashSync(password, SALT);
+router.post<
+    '/signup',
+    any,
+    components['schemas']['DefaultSuccessResponseSchema'] | components['schemas']['DefaultErrorResponseSchema'],
+    components['schemas']['UserCreateRequestSchema'],
+    any,
+    any
+>('/signup', async (req, res) => {
     try {
-        const newUser: User = {
-            id: null,
+        // TODO set random password first and force user to change on first login
+        // TODO research why const displayName = req.body.displayName?.trim() ?? null; does not evaluate to null if ''
+
+        const displayName = req.body.displayName.trim();
+        const email = req.body.email.trim();
+        const password = req.body.password ?? null;
+        // TODO: add password requirements also in /auth/change-password
+
+        const passwordHash = bcrypt.hashSync(password, SALT);
+        const newUser: UserCreator = {
             displayName: displayName,
             email: email
         }
@@ -70,10 +78,10 @@ router.post('/signup', async (req, res) => {
             let value = '';
             if (err.message.includes('name')) {
                 invalidValue = 'name';
-                value = displayName;
+                value = req.body.displayName?.trim();
             } else if (err.message.includes('email')) {
                 invalidValue = 'email';
-                value = email;
+                value = req.body.email?.trim();
             } else if (err.message.includes('password')) {
                 invalidValue = 'password';
             }
@@ -94,7 +102,14 @@ router.post('/signup', async (req, res) => {
     }
 });
 
-router.post('/login', async (req, res) => {
+router.post<
+    '/login',
+    any,
+    components['schemas']['AccessTokenResponseSchema'] | components['schemas']['DefaultErrorResponseSchema'],
+    components['schemas']['LoginRequestSchema'],
+    any,
+    any
+>('/login', async (req, res) => {
     const email = req.body.email ? req.body.email.trim() : '';
     const password = req.body.password;
 
@@ -122,15 +137,21 @@ router.post('/login', async (req, res) => {
             .status(200)
             .cookie('refreshToken', refreshToken)
             .json({
-                accessToken: accessToken,
-                message: 'authentication success'
+                accessToken: accessToken
             });
     } else {
         return res.status(401).send(errorJson('invalid credentials'));
     }
 });
 
-router.post('/logout', async (req, res) => {
+router.post<
+    '/logout',
+    any,
+    components['schemas']['DefaultSuccessResponseSchema'] | components['schemas']['DefaultErrorResponseSchema'],
+    components['schemas']['LogoutRequestSchema'],
+    any,
+    any
+>('/logout', async (req, res) => {
     res.clearCookie('refreshToken');
     const user = await repository.getUserByEmail(req.body.email);
     if (!user) {
@@ -139,15 +160,22 @@ router.post('/logout', async (req, res) => {
     }
     // TODO try catch
     await repository.deleteRefreshToken(req.body.email);
-    return res.status(200).send('logged out successfully');
+    return res.status(200).send(successJson('logged out successfully'));
 });
 
-router.post('/refresh-token', async (req, res) => {
+router.post<
+    '/refresh-token',
+    any,
+    components['schemas']['AccessTokenResponseSchema'] | components['schemas']['DefaultErrorResponseSchema'],
+    components['schemas']['LogoutRequestSchema'],
+    any,
+    any
+>('/refresh-token', async (req, res) => {
     try {
         const refreshToken = req.cookies.refreshToken;
         if (!refreshToken) {
             console.warn('trying to refresh acces token without refresh token');
-            return res.status(400).send('missing refresh token');
+            return res.status(400).send(errorJson('missing refresh token'));
         }
 
         let userId;
@@ -156,18 +184,18 @@ router.post('/refresh-token', async (req, res) => {
             const decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET) as { id: string };
             if (decode === null) {
                 console.error('');
-                return res.status(500).send({ 'errorMessage': 'something went wrong' });
+                return res.status(500).send(errorJson('something went wrong'));
             }
             userId = decoded.id;
         } catch (err) {
             console.warn('trying to refresh acces token with invalid refresh token');
             // TODO return JSON always
-            return res.status(400).send('invalid refresh token');
+            return res.status(400).send(errorJson('invalid refresh token'));
         }
 
         if (!userId) {
             console.warn('trying to refresh acces token with invalid refresh token');
-            return res.status(400).send('invalid refresh token');
+            return res.status(400).send(errorJson('invalid refresh token'));
         }
 
         let storedRefreshToken;
@@ -175,12 +203,12 @@ router.post('/refresh-token', async (req, res) => {
             storedRefreshToken = await repository.getRefreshToken(userId);
         } catch (err) {
             console.error('error while trying to refresh access token', err);
-            return res.status(500).send('something went wrong');
+            return res.status(500).send(errorJson('something went wrong'));
         }
 
         if (!storedRefreshToken || !bcrypt.compareSync(refreshToken, storedRefreshToken)) {
             console.info('provided refresh token does not match stored refresh token');
-            return res.status(400).send('invalid refresh token');
+            return res.status(400).send(errorJson('invalid refresh token'));
         }
 
         const newAccessToken = createAccessToken(userId);
@@ -193,7 +221,7 @@ router.post('/refresh-token', async (req, res) => {
             });
     } catch (err) {
         console.info('error trying to refresh acces token', err);
-        return res.status(500).send('something went wrong');
+        return res.status(500).send(errorJson('something went wrong'));
     }
 });
 

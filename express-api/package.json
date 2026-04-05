@@ -5,6 +5,7 @@
   "private": true,
   "main": "src/main/server.ts",
   "scripts": {
+    "generate:openapi-schema": "openapi-typescript api-spec/halp_api_openapi_3.1.yaml -o api-spec/generated/schema.d.ts",
     "build": "tsc",
     "type-check": "tsc --no-emit",
     "dev": "tsx --watch --env-file src/main/resources/.env src/main/server.ts",
