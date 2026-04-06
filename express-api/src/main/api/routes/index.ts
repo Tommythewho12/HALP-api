@@ -6,8 +6,8 @@ import { SqliteError } from 'better-sqlite3';
 import { repository } from '../../repositories/repository-factory.js';
 import { decode } from 'node:punycode';
 import type { UserCreator } from '../../domain/models/User.js';
-import { errorJson, successJson } from './api-utils.js';
-import type { components } from '../../../../api-spec/generated/schema.js';
+import { errorJson, MESSAGE_SERVER_ERROR, successJson } from './api-utils.js';
+import type { components } from '../../../../public/api-spec/generated/schema.js';
 
 // TODO move to env/config file
 const SALT = Number(process.env.SALT) || 10;
@@ -48,7 +48,7 @@ const router = express.Router({ mergeParams: true });
 router.post<
     '/signup',
     any,
-    components['schemas']['DefaultSuccessResponseSchema'] | components['schemas']['DefaultErrorResponseSchema'],
+    components['schemas']['UserSchema'] | components['schemas']['DefaultErrorResponseSchema'],
     components['schemas']['UserCreateRequestSchema'],
     any,
     any
@@ -67,10 +67,13 @@ router.post<
             displayName: displayName,
             email: email
         }
-        await repository.createUser(newUser, passwordHash);
-        console.info('User created: displayName [' + displayName + '], email [' + email + ']');
-        return res.status(201).send(successJson('User successfully created'));
-        // TODO return actual object instead
+        const newUserId = await repository.createUser(newUser, passwordHash);
+        if (newUserId != undefined) {
+            const resultUser = { id: newUserId, ...newUser }
+            return res.status(201).json(resultUser);
+        } else {
+            throw new Error('database persisted without returning id');
+        }
     } catch (err) {
         // example for sqlite error handling
         if (err instanceof SqliteError) {
@@ -99,7 +102,7 @@ router.post<
             }
         }
         console.error('unknown error while accessing database', err);
-        return res.status(500).send(errorJson('server error'));
+        return res.status(500).send(errorJson(MESSAGE_SERVER_ERROR));
     }
 });
 
@@ -185,12 +188,11 @@ router.post<
             const decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET) as { id: string };
             if (decode === null) {
                 console.error('');
-                return res.status(500).send(errorJson('something went wrong'));
+                return res.status(500).send(errorJson(MESSAGE_SERVER_ERROR));
             }
             userId = decoded.id;
         } catch (err) {
             console.warn('trying to refresh acces token with invalid refresh token');
-            // TODO return JSON always
             return res.status(400).send(errorJson('invalid refresh token'));
         }
 
@@ -204,7 +206,7 @@ router.post<
             storedRefreshToken = await repository.getRefreshToken(userId);
         } catch (err) {
             console.error('error while trying to refresh access token', err);
-            return res.status(500).send(errorJson('something went wrong'));
+            return res.status(500).send(errorJson(MESSAGE_SERVER_ERROR));
         }
 
         if (!storedRefreshToken || !bcrypt.compareSync(refreshToken, storedRefreshToken)) {
@@ -222,7 +224,7 @@ router.post<
             });
     } catch (err) {
         console.info('error trying to refresh acces token', err);
-        return res.status(500).send(errorJson('something went wrong'));
+        return res.status(500).send(errorJson(MESSAGE_SERVER_ERROR));
     }
 });
 
@@ -249,4 +251,4 @@ router.post<
     return res.status(200).send(successJson('a new password was sent to your email'));
 });*/
 
-export default router;
+export const indexRouter = router;

@@ -1,7 +1,7 @@
 import type { User, UserCreator } from "../domain/models/User.js"
 import type { Team, TeamEnriched, Subscription, TeamCreator } from "../domain/models/Team.js"
 import type { Event, EventCreator, EventEnriched, VolunteeringEnriched } from "../domain/models/Event.js"
-import type { JobEnriched } from "../domain/models/Job.js"
+import type { JobCreator, JobEnriched } from "../domain/models/Job.js"
 
 export interface RepositoryInterface extends
     UserInterface,
@@ -62,7 +62,7 @@ interface VolunteeringInterface {
 }
 
 interface JobInterface {
-    createJob(eventId: string, jobType: string): Promise<string>
+    createJob(job: JobCreator): Promise<string>
     updateJob(jobId: string, userId: string | null): Promise<void>
     deleteJob(jobId: string): Promise<void>
     getEnrichedJobsByEventId(eventId: string): Promise<JobEnriched[]>

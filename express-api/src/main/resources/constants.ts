@@ -1,6 +1,6 @@
 export enum JobTypes {
-    BALLER,
-    CLEANER,
-    SCORER,
-    OFFICIAL
+    BALLER = 'BALLER',
+    CLEANER = 'CLEANER',
+    SCORER = 'SCORER',
+    OFFICIAL = 'OFFICIAL'
 }

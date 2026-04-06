@@ -6,11 +6,11 @@ const SALT = Number(process.env.SALT) | 10;
 
 import { repository } from '../../repositories/repository-factory.js';
 
-import usersRoute from './users.js';
-import teamsRoute from './teams.js';
-import eventsRoute from './events.js';
-import type { components } from '../../../../api-spec/generated/schema.js';
-import { errorJson, successJson, type RequestUserEnriched } from './api-utils.js';
+import { usersRouter } from './users.js';
+import { teamsRouter } from './teams.js';
+import { eventsRouter } from './events.js';
+import type { components } from '../../../../public/api-spec/generated/schema.js';
+import { errorJson, PATHS, successJson, type RequestUserEnriched } from './api-utils.js';
 
 const ACCESS_TOKEN_SECRET = 'this-is-my-super-secret-secret-that-noone-will-ever-find-out'; // TODO: place in secret file or so?
 
@@ -76,8 +76,8 @@ router.patch<
     return res.status(200).send(successJson('password changed'));
 });
 
-router.use('/user', usersRoute);
-router.use('/teams', teamsRoute);
-router.use('/events', eventsRoute);
+router.use(PATHS.users, usersRouter);
+router.use(PATHS.teams, teamsRouter);
+router.use(PATHS.events, eventsRouter);
 
-export default router;
+export const authRouter = router;

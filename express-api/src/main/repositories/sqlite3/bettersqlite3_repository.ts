@@ -9,6 +9,7 @@ import type { EventEnriched, Event } from '../../domain/models/Event.js';
 import type { EventEnrichedEntity, TeamEnrichedEntity, EventEntity, SubscriptionAndUserEntity, TeamEntity, UserEntity, VolunteeringAndUserEntity, JobAndUserEntity } from './sqlite3_entities.js';
 import { toEnrichedEvent, toEnrichedEventOrUndefined, toEnrichedJob, toEnrichedTeam, toEvent, toEventOrUndefined, toSubscription, toTeamOrUndefined, toEnrichedVolunteering } from './sqlite3_mapper.js';
 import type { UserCreator } from '../../domain/models/User.js';
+import type { JobCreator } from '../../domain/models/Job.js';
 
 // TODO: move path to .env
 const SQLITE_PATH = 'dist/db';
@@ -389,11 +390,11 @@ export class BetterSqlite3Repository implements RepositoryInterface {
 
     // TODO create major issue for below use case: either allow customizable Roles or give a fixed preset
     // TODO either stay agnostic here as the object that is delivered (e.g. can have scorer or not and many others) or define static
-    async createJob(eventId: string, jobType: string) {
+    async createJob(job: JobCreator) {
         const newJobId = db.prepare(`
             INSERT INTO job (event_id, type)
             VALUES (?, UPPER(?))`
-        ).run(eventId, jobType).lastInsertRowid;
+        ).run(job.eventId, job.type).lastInsertRowid;
         return String(newJobId);
     }
 

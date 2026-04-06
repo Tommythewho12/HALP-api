@@ -1,9 +1,13 @@
 import { JobTypes } from "../../resources/constants.js"
 
-export interface Job {
-    id: string
+
+export interface JobCreator {
     eventId: string
     type: JobTypes
+}
+
+export interface Job extends JobCreator {
+    id: string
     assigneeId: string | null
 }
 

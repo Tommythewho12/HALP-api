@@ -2,8 +2,8 @@ import express from 'express';
 import { SqliteError } from 'better-sqlite3';
 
 import { repository } from '../../repositories/repository-factory.js';
-import { errorJson, successJson, type RequestUserEnriched } from './api-utils.js';
-import type { components } from '../../../../api-spec/generated/schema.js';
+import { errorJson, MESSAGE_SERVER_ERROR, successJson, type RequestUserEnriched } from './api-utils.js';
+import type { components } from '../../../../public/api-spec/generated/schema.js';
 import { JobTypes } from '../../resources/constants.js';
 
 const router = express.Router();
@@ -81,7 +81,7 @@ router.get<
         }
         return res.status(200).json(result);
     } catch (error) {
-        return res.status(500).json(errorJson('internal server error'));
+        return res.status(500).json(errorJson(MESSAGE_SERVER_ERROR));
     }
 });
 
@@ -105,11 +105,11 @@ router.post<
             } else {
                 // TODO: better error handling
                 console.error('trying to ', err);
-                return res.status(500).send(successJson('something went wrong'));
+                return res.status(500).send(errorJson(MESSAGE_SERVER_ERROR));
             }
         }
         console.error('unknown error while accessing database', err);
-        return res.status(500).send(errorJson('server error'));
+        return res.status(500).send(errorJson(MESSAGE_SERVER_ERROR));
     }
 });
 
@@ -130,4 +130,4 @@ router.delete<
     return res.status(200).send(successJson('volunteer withdrawn from event'));
 });
 
-export default router;
+export const eventsRouter = router;

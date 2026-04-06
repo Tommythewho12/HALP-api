@@ -2,17 +2,17 @@ import express, { type Request, type Response } from 'express';
 import { SqliteError } from 'better-sqlite3';
 
 import { repository } from '../../repositories/repository-factory.js';
-import eventsRoute from './events_admin.js';
+import { eventsManagedRouter } from './events_admin.js';
 import type { TeamCreator } from '../../domain/models/Team.js';
-import { errorJson, successJson, type RequestUserEnriched } from './api-utils.js';
-import type { components } from '../../../../api-spec/generated/schema.js';
+import { errorJson, MESSAGE_SERVER_ERROR, successJson, type RequestUserEnriched } from './api-utils.js';
+import type { components } from '../../../../public/api-spec/generated/schema.js';
 
 const router = express.Router();
 
 router.post<
     '/',
     any,
-    components['schemas']['DefaultSuccessResponseSchema'] | components['schemas']['DefaultErrorResponseSchema'],
+    components['schemas']['TeamSchema'] | components['schemas']['DefaultErrorResponseSchema'],
     components['schemas']['TeamCreateRequestSchema'] & RequestUserEnriched,
     any,
     any
@@ -23,45 +23,40 @@ router.post<
     }
 
     try {
-
         const teamNameSan = req.body.teamName.trim();
-        const team: TeamCreator = {
+        const newTeam: TeamCreator = {
             name: teamNameSan,
             adminId: req.body.userId
         }
-        const newTeamId = await repository.createTeam(team);
-        // TODO return actual object instead
-        /*
-        const newTeam = {
-            id: newTeamId,
-            name: teamNameSan,
-            adminId: req.body.userId,
-            subscriberIds: [],
-            eventIds: {}
-        };
-        return res.status(201).json(newTeam);*/
-        return res.status(201).json(successJson('team created'));
+        const newTeamId = await repository.createTeam(newTeam);
+        if (newTeamId != undefined) {
+            const resultTeam = {
+                id: newTeamId,
+                name: teamNameSan,
+                adminId: req.body.userId
+            };
+            return res.status(201).json(resultTeam);
+        } else {
+            throw new Error('database persisted without returning id');
+        }
     } catch (error) {
         if (error instanceof SqliteError) {
             // TODO extrapolate for other cases as well
             switch (error.code) {
                 case 'SQLITE_CONSTRAINT_CHECK':
                 case 'SQLITE_CONSTRAINT_NOTNULL':
-                    // TODO return JSON
                     return res.status(400).send(errorJson('name cannot be blank'));
                 case 'SQLITE_CONSTRAINT_UNIQUE':
                     if (error.message.includes('name')) {
                         console.warn('User creation failed: teamName [' + req.body.teamName + '] already in use');
                     }
-                    // TODO return JSON
                     return res.status(400).send(errorJson('name already in use. Please use different value'));
                 default:
                     console.error('database error while creating user');
             }
         }
         console.error('unknown error while accessing database', error);
-        // TODO make JSON everywhere
-        return res.status(500).send(errorJson('server error'));
+        return res.status(500).send(errorJson(MESSAGE_SERVER_ERROR));
     }
 });
 
@@ -93,7 +88,6 @@ router.use('/:teamId', async (req, _res, next) => {
         req.body.isUserAdmin = isAdmin;
         console.debug(`userId: ${req.body.userId}; isAdmin? `, isAdmin);
 
-        // TODO necessary?
         next();
     } else
         throw new Error('no team id provided');
@@ -108,22 +102,15 @@ router.post<
     any,
     any
 >('/:teamId/subscribers', async (req, res) => {
-    const resultJson = {
-        team_id: req.params.teamId,
-        user_id: req.body.userId
-    };
-    // TODO return actually created object
     try {
         await repository.createSubscription(req.body.userId, req.params.teamId);
-        // return res.status(200).json(resultJson);
-        // TODO return actually created object
         return res.status(200).json(successJson('subscribed successfully'));
     } catch (err) {
         if (err instanceof SqliteError && err.code === 'SQLITE_CONSTRAINT_PRIMARYKEY') {
             console.warn('user already subscribed to team');
             return res.status(200).json(successJson('subscribed successfully'));
         } else {
-            return res.status(500).json(errorJson('whoopsie'));
+            return res.status(500).json(errorJson(MESSAGE_SERVER_ERROR));
         }
     }
 });
@@ -139,14 +126,9 @@ router.delete<
 >('/:teamId/subscribers', async (req, res) => {
     try {
         await repository.deleteSubscription(req.params.teamId, req.body.userId);
-        const resultJson = {
-            team_id: req.params.teamId,
-            user_id: req.body.userId
-        }
-        // TODO return actually created object
         return res.status(200).json(successJson('unsubscribed successfully'));
     } catch (err) {
-        return res.status(500).json(errorJson('whoopsie'));
+        return res.status(500).json(errorJson(MESSAGE_SERVER_ERROR));
     }
 });
 
@@ -179,6 +161,6 @@ router.delete<
     res.status(200).send(successJson('team deleted'));
 });
 
-router.use('/:teamId/events', eventsRoute);
+router.use('/:teamId/events', eventsManagedRouter);
 
-export default router;
+export const teamsRouter = router;

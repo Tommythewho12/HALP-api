@@ -1,7 +1,7 @@
 import express from 'express';
 
 import { errorJson, type RequestUserEnriched } from './api-utils.js';
-import type { components } from '../../../../api-spec/generated/schema.js';
+import type { components } from '../../../../public/api-spec/generated/schema.js';
 import { repository } from '../../repositories/repository-factory.js';
 
 const router = express.Router();
@@ -23,4 +23,4 @@ router.get<
     return res.status(400).json(errorJson('user not found'));
 });
 
-export default router;
+export const usersRouter = router;

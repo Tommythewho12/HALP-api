@@ -1,15 +1,19 @@
 'use strict';
 
-import express from "express";
+import express, { type Request, type Response } from "express";
+import serveStatic from 'serve-static';
 import cookieParser from "cookie-parser";
 import 'dotenv/config';
 
-import router from "./api/routes/index.js";
-import authRoute from "./api/routes/auth.js";
+import { indexRouter } from "./api/routes/index.js";
+import { authRouter } from "./api/routes/auth.js";
+import { errorJson, MESSAGE_SERVER_ERROR, PATHS } from "./api/routes/api-utils.js";
 
 const PORT = Number(process.env.PORT) || 3000;
 
 const app = express();
+
+app.use(serveStatic('public'));
 
 app.use(express.json());
 app.use(cookieParser());
@@ -29,8 +33,16 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use('/', router);
-app.use('/auth', authRoute);
+app.use(PATHS.index, indexRouter);
+app.use('/auth', authRouter);
+
+// default error middleware/handler
+app.use((err: any, req: Request, res: Response, next: any) => {
+    console.debug('### express error middleware finally in use! ###')
+    console.error(err)
+    return res.status(500).json(errorJson(MESSAGE_SERVER_ERROR));
+})
+
 
 const server = app.listen(PORT, () => {
     console.log(`halp-api listening on port ${PORT}`)

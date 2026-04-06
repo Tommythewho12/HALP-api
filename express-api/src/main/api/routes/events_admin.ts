@@ -3,16 +3,15 @@ import express from 'express';
 import { repository } from '../../repositories/repository-factory.js';
 import { JobTypes } from '../../resources/constants.js';
 import type { EventCreator } from '../../domain/models/Event.js';
-import { errorJson, successJson, type RequestUserEnriched } from './api-utils.js';
-import type { components } from '../../../../api-spec/generated/schema.js';
+import { errorJson, MESSAGE_SERVER_ERROR, successJson, type RequestUserEnriched } from './api-utils.js';
+import type { components } from '../../../../public/api-spec/generated/schema.js';
 
 const router = express.Router({ mergeParams: true });
 
-// TODO add typing!
 router.post<
     '/',
     any,
-    components['schemas']['DefaultSuccessResponseSchema'] | components['schemas']['DefaultErrorResponseSchema'],
+    components['schemas']['EventSchema'] | components['schemas']['DefaultErrorResponseSchema'],
     components['schemas']['EventCreateRequestSchema'] & RequestUserEnriched,
     any,
     any
@@ -22,56 +21,56 @@ router.post<
         return res.status(400).send(errorJson('event name must not be emtpy'));
     }
 
-    // TODO: validate of type time
-    const dateTime = req.body.dateTime;
-    const description = req.body.description ? req.body.description : '';
+    try {
+        // TODO: validate of type time
+        const dateTime = req.body.dateTime;
+        const description = req.body.description ? req.body.description : '';
 
-    const newJobs = req.body.jobs ? req.body.jobs : {} as { scorer: number, official: number };
-    if (!newJobs) {
-        console.info('bad request: no jobs provided for creating event');
-        res.status(400).send(errorJson('must specify required jobs'));
-        return;
-    }
-
-    for (const [job, count] of Object.entries(newJobs)) {
-        console.debug('[events_admin] job, count: ', job.toUpperCase(), count);
-        console.debug('[events_admin] typeof JOB_ENUM: ', JobTypes, typeof JobTypes);
-        if (typeof job !== 'string' || !(job.toUpperCase() in JobTypes)) {
-            return res.status(400).send(errorJson('invalid job type'));
-        } else if (typeof count !== 'number' || count < 0) {
-            return res.status(400).send(errorJson('invalid number of jobs'));
+        /*const newJobs = req.body.jobs ? req.body.jobs : {} as { scorer: number, official: number };
+        if (!newJobs) {
+            console.info('bad request: no jobs provided for creating event');
+            res.status(400).send(errorJson('must specify required jobs'));
+            return;
         }
-    }
 
-    const event: EventCreator = {
-        name: eventName,
-        description: description,
-        startDatetime: dateTime,
-        teamId: req.params.teamId,
-        complete: false
-    }
-    const eventId = await repository.createEvent(event);
-    for (const [job, count] of Object.entries(newJobs) as [keyof typeof newJobs, number][]) {
-        for (let i = 0; i < count; i++) {
-            await repository.createJob(eventId, job);
+        for (const [job, count] of Object.entries(newJobs)) {
+            console.debug('[events_admin] job, count: ', job.toUpperCase(), count);
+            console.debug('[events_admin] typeof JOB_ENUM: ', JobTypes, typeof JobTypes);
+            if (typeof job !== 'string' || !(job.toUpperCase() in JobTypes)) {
+                return res.status(400).send(errorJson('invalid job type'));
+            } else if (typeof count !== 'number' || count < 0) {
+                return res.status(400).send(errorJson('invalid number of jobs'));
+            }
+        }*/
+
+        const newEvent: EventCreator = {
+            name: eventName,
+            description: description,
+            startDatetime: dateTime,
+            teamId: req.params.teamId,
+            complete: false
         }
+        const eventId = await repository.createEvent(newEvent);
+        /*for (const [job, count] of Object.entries(newJobs) as [keyof typeof newJobs, number][]) {
+            for (let i = 0; i < count; i++) {
+                await repository.createJob(eventId, job);
+            }
+        }*/
+        if (eventId != undefined) {
+            const resultEvent = {
+                id: eventId,
+                teamId: req.params.teamId,
+                name: eventName,
+                description: description,
+                startDatetime: dateTime
+            }
+            return res.status(201).json(resultEvent);
+        } else {
+            throw new Error(MESSAGE_SERVER_ERROR);
+        }
+    } catch (err) {
+        return res.status(500).json(errorJson(MESSAGE_SERVER_ERROR));
     }
-
-    return res.status(201).json(successJson('new event created'));
-    // TODO return actual object instead
-    /*const newEvent = {
-        id: eventId,
-        teamId: req.params.teamId,
-        name: eventName,
-        description: description,
-        startDatetime: dateTime,
-        jobs: newJobs,
-        complete: false,
-        isVolunteering: false,
-        isAssigned: false
-    }
-
-    return res.status(201).json(newEvent);*/
 });
 
 router.delete<
@@ -124,20 +123,31 @@ router.get<
 router.post<
     '/:eventId/jobs',
     any,
-    components['schemas']['DefaultSuccessResponseSchema'] | components['schemas']['DefaultErrorResponseSchema'],
+    components['schemas']['JobSchema'] | components['schemas']['DefaultErrorResponseSchema'],
     components['schemas']['JobCreateRequestSchema'] & RequestUserEnriched,
     any,
     any
 >('/:eventId/jobs', async (req, res) => {
-    // TODO: validate jobsType
-
     try {
-        await repository.createJob(req.params.eventId, req.body.jobType);
-        // TODO return actual created object
-        return res.status(201).send(successJson('job added'));
+        const jobType = req.body.jobType.trim().toUpperCase();
+        // if (!(jobType in JobTypes)) {
+        if (!Object.keys(JobTypes).includes(jobType)) {
+            throw new Error(MESSAGE_SERVER_ERROR)
+        }
+        const newJob = {
+            eventId: req.params.eventId,
+            type: jobType as JobTypes
+        }
+        const jobId = await repository.createJob(newJob);
+        const resultJob = { id: jobId, ...newJob }
+        if (jobId != undefined) {
+            return res.status(201).send(resultJob);
+        } else {
+            throw new Error(MESSAGE_SERVER_ERROR);
+        }
     } catch (err) {
         console.error('POST:/auth/teams/:teamId/events/:eventId/jobs', err);
-        return res.status(500).send(errorJson('something went wrong'));
+        return res.status(500).send(errorJson(MESSAGE_SERVER_ERROR));
     }
 });
 
@@ -186,4 +196,4 @@ router.patch<
     }
 });
 
-export default router;
+export const eventsManagedRouter = router;
