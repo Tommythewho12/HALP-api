@@ -22,7 +22,6 @@ export interface Volunteering {
     volunteerId: string
 }
 
-export interface VolunteeringEnriched {
+export interface VolunteeringEnriched extends User {
     eventId: string
-    volunteer: User
 }

@@ -139,8 +139,8 @@ export function toEnrichedVolunteering(input: any): VolunteeringEnriched {
     if (!isVolunteeringAndUserEntity(input))
         throw new Error('cannot parse given input to type Volunteering', input);
     return {
-        eventId: String(input.event_id),
-        volunteer: toUser(input)
+        ...toUser(input),
+        eventId: String(input.event_id)
     }
 }
 

@@ -605,7 +605,7 @@ components:
                 volunteers:
                     type: array
                     items:
-                        $ref: "#/components/schemas/VolunteeringEnrichedSchema"
+                        $ref: "#/components/schemas/UserSchema"
                 jobs:
                     type: array
                     minItems: 1
@@ -697,13 +697,6 @@ components:
                 - admin
                 - team
                 - event
-        VolunteeringEnrichedSchema:
-            type: object
-            properties:
-                eventId:
-                    type: string
-                volunteer:
-                    $ref: "#/components/schemas/UserSchema"
         JobCreatorSchema:
             type: object
             properties:

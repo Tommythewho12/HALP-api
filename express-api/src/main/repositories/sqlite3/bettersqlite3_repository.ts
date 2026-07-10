@@ -424,8 +424,8 @@ export class BetterSqlite3Repository implements RepositoryInterface {
     async getEnrichedJobsByEventId(eventId: string) {
         const res = db.prepare(`
             SELECT
-                j.*,
-                u.*
+                j.id as id, j.event_id, j.type,
+                u.id as assignee_id, u.display_name as assignee_name, u.email as assignee_email
             FROM
                 job j
             LEFT JOIN
