@@ -110,6 +110,7 @@ router.post<
             console.warn('user already subscribed to team');
             return res.status(200).json(successJson('subscribed successfully'));
         } else {
+            console.error(err);
             return res.status(500).json(errorJson(MESSAGE_SERVER_ERROR));
         }
     }

@@ -34,14 +34,14 @@ router.get<
     '/:eventId',
     any,
     components['schemas']['EventDetailedSchema'] | components['schemas']['DefaultErrorResponseSchema'],
-    RequestUserEnriched,
+    any & RequestUserEnriched,
     any,
     any
 >('/:eventId', async (req, res) => {
     try {
         const enrichedEvent = await repository.getEnrichedEvent(req.params.eventId, req.body.userId);
         if (!enrichedEvent)
-            throw new Error('unable to find event');
+            return res.status(404);
         const team = await repository.getTeam(enrichedEvent.teamId);
         if (!team)
             throw new Error('unable to find team');
@@ -81,6 +81,7 @@ router.get<
         }
         return res.status(200).json(result);
     } catch (error) {
+        console.error(error);
         return res.status(500).json(errorJson(MESSAGE_SERVER_ERROR));
     }
 });

@@ -194,7 +194,7 @@ export class BetterSqlite3Repository implements RepositoryInterface {
         const newId = db.prepare(`
             INSERT INTO userXteam
             VALUES (?, ?)`
-        ).run(userId, teamId).lastInsertRowid;
+        ).run(teamId, userId).lastInsertRowid;
         return String(newId);
     }
 
@@ -288,27 +288,37 @@ export class BetterSqlite3Repository implements RepositoryInterface {
             return stmt.get({ eventId, userId });
         },*/
 
-    // TODO compare this SQL with below
     async getEnrichedEvent(eventId: string, userId: string): Promise<EventEnriched | undefined> {
         const res = db.prepare(`
-            SELECT 
+            SELECT DISTINCT
                 e.*,
-                CASE WHEN uxe.volunteer_id IS NOT NULL THEN 1 ELSE 0 END AS is_volunteering,
-                CASE WHEN j.assignee_id IS NOT NULL THEN 1 ELSE 0 END AS is_assigned
-            FROM event e 
-            INNER JOIN userXteam uxt 
-                ON e.team_id=uxt.team_id
-            LEFT JOIN userXevent uxe
-                ON e.id = uxe.event_id AND uxe.volunteer_id = uxt.subscriber_id
-            LEFT JOIN job j
-                ON e.id = j.event_id AND j.assignee_id = uxt.subscriber_id
-            WHERE e.id = ? AND uxt.subscriber_id = ?
+                EXISTS (
+                    SELECT 1 FROM userXevent
+                    WHERE event_id = e.id AND volunteer_id = @userId
+                ) is_volunteering,
+                EXISTS (
+                    SELECT 1 FROM job
+                    WHERE event_id = e.id AND assignee_id = @userId
+                ) AS is_assigned
+            FROM event e
+            WHERE
+                (EXISTS (
+                    SELECT 1 FROM userXevent
+                    WHERE event_id = e.id AND volunteer_id = @userId
+                )
+                OR EXISTS (
+                    SELECT 1 FROM userXteam
+                    WHERE team_id = e.team_id AND subscriber_id = @userId
+                ))
+                AND e.id = @eventId
+                AND start_datetime > strftime('%s','now','start of day')
             LIMIT 1`
-        ).get(eventId, userId) as EventEnrichedEntity | undefined;
+        ).get({ eventId, userId }) as EventEnrichedEntity | undefined;
+        console.debug("res: ", res);
         return toEnrichedEventOrUndefined(res);
     }
 
-    // this includes all managed events and events from subscribed teams
+    // this includes events from subscribed teams, and events volunteering for
     async getEnrichedEventsByVolunteerId(userId: string) {
         const res = db.prepare(`
             SELECT DISTINCT
@@ -330,15 +340,18 @@ export class BetterSqlite3Repository implements RepositoryInterface {
                 OR EXISTS (
                     SELECT 1 FROM userXteam
                     WHERE team_id = e.team_id AND subscriber_id = @userId
-                )
-                OR EXISTS (
-                    SELECT 1 FROM team
-                    WHERE id = e.team_id AND admin_id = @userId
                 ))
                 AND start_datetime > strftime('%s','now','start of day')`
         ).all({ userId }) as EventEnrichedEntity[];
         return res.map(item => toEnrichedEvent(item));
     }
+    /* 
+    // in order to check for admin as well
+                OR EXISTS (
+                    SELECT 1 FROM team
+                    WHERE id = e.team_id AND admin_id = @userId
+                )
+    */
 
     async createVolunteering(userId: string, eventId: string) {
         const newVolunteeringId = db.prepare(`
